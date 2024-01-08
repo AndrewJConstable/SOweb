@@ -3,26 +3,222 @@ title: "SOweb Development"
 author: "Andrew Constable"
 date: "2023-12-30"
 output: html_document
+bibliography: ["SOweb.bib"]
+biblio-style: "ecology"
+link-citations: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Rationale
+## Introduction
 
-SOweb
+A model is needed to help indicate the pressures of change on Southern Ocean ecosystems, given the limitations of knowledge.  Moreover, an approach is needed that allows free assembly of the relative dominance of species;  exploration of alternative stable states within a common functional configuration is needed.  This freedom of assembly allows for considering what alternative stable states comprise the natural envelope of states.  A likelihood on each of these alternatives then enables which states could be observed more often.  When the functional configuration shifts due to external, directional forcing, what might be expected of the envelope of states and the individual likelihoods of states. (note this is what I was thinking back in 2003). 
 
-```{r cars}
-summary(cars)
+SOweb uses dynamic biomass pools to model Southern Ocean food webs with top-down and bottom-up processes. Top down processes include individual representations of predator-prey dynamics. Bottom-up processes include habitat influences on different groups.  The relative biomass of each pool is estimated using Bayesian statistics, based on external parameterisation of the top-down and bottom-processes and prior estimates of each biomass.  Realisations of each SOweb are then compared to determine a trajectory from a base realisation.
+  
+This approach advances the qualitative network modelling of Melbourne-Thomas et al (2013) by enabling quantitative, scaled feedbacks between different biomass pools resulting in estimates of relative biomass of each pool.  While also ensuring balanced inputs and outputs across the web, this approach is an advance on the Ecopath system because it better enables pool-specific attributes to be accommodated rather than generalised in the same set of parameters for each pool.  
+  
+## Aims  
+  
+The aim of this model is to evaluate 'big' uncertainties in knowledge of ecosystem structure and function and how sensitive the system may be to various assumptions of the interactions between species dynamics, climate change and fishing.  
+  
+e.g. examine the interactions of fishing not related to consumption competition. (disturbance of swarms, hyper-concentration of krill);  Iron limitation and the role of iron recycling; Metabolism.  What processes are large gaps in understanding?  How can issues be reconciled in time and space?  
+  
+How do these various outcomes look when plotted using non-metric multi-dimensional scaling.  
+  
+  
+## An equilibrium model accounting for nutrients  
+  
+The objective behind using equilibrium models is determine how an unperturbed system may look under different environmental circumstances and then to compare reality to those systems to see what factors may be driving their current state and trajectory.  This process allows simplification of ecosystem structure and function to use what is known and to minimise the influence of the 'unknowns' on the outcomes.  Of course, a dynamic system has feedbacks and oscillations which, in reality, are unable to be dampened to a constant state.  Understanding inherent variability is not the purpose of this analysis.  Instead, it aims to identify whether we can expect gross differences in the underlying relationships given substantial change in the environment.  Once (if) identified then the relative importance of variability in driving futures can be focussed on the suite of 'webs' that appear possible.  
+  
+Ecopath with Ecosim relies on estimates of abundance of different biomass pools for scaling an equilibrium model, and for tuning the model i.e. to "estimate" biomasses and trophic linkages that are poorly estimated.  It is regarded as a 'top-down' ecological model because of its emphasis on balancing food consumption with biomass mortality from predation within a biomass pool.  That balance is created by discounting food consumption by metabolic, waste and non-predatory mortality processes.  Incorporating 'bottom up' processes influencing primary production requires either to scale the biomass of primary producers or by driving the Ecosim component of the system by varying their biomasses through time.  The 'estimation' process for establishing the starting conditions, i.e. Ecopath, remains unaffected by biogeochemistry and its feedbacks.  
+  
+The inclusion of nutrient pools and feedbacks to those pools, from recylcing of nutrients from trophic excretia, faeces and bodies, is difficult in Ecopath because these pathways are poorly estimated, even though they are well described.  
+  
+Here, I elaborate an equilibrium model including nutrient feedbacks and switches between different energy pathways based on physiological and ecological limits.  
+  
+### General description  
+  
+Equilibrium of a Southern Ocean food web with nutrient pools is based on the annual resetting of the nutrient pool each winter combined with the annual inputs over the year.  This is the annual new nutrient pool (NNP).
+
+The simultaneous equations to be solved by varying the magnitude of the biomass pools are those relating to each of the relevant nutrient pools, where the NNP should be equal to the total annual loss of those nutrients from the system (sequestration) (LNP) plus the unused nutrients still remaining available (UNP), i.e. NNP=LNP+UNP.  For limiting nutrients which are exhausted over a year, UNP=0. Thus, simultaneous equations around limiting nutrients will be easier to circumscribe than others. 
+  
+The food web biomass pools can be better constrained by using available nutrient sequestration rates from different pools.  One difficulty with other methods for balancing the food web is to pre-specify the dietary composition.  This automatically configures the food web to a specific outcome.  In order to have greater range for determining what might be an equilibrium position, the trophic relationships need to be more parsimoniously specified, ie. through direct functional feeding relationships as well as conditioning the potential for competition.  For example, size-based models do this [@Jennings__2004_RN6080;@Jennings__2005_RN6077].  In this case per capita feeding rates are determined and used as a basis for consumptive competition (e.g. potential for capture in a single feeding event) and the maximum rate of consumption of each prey type.
+  
+### The challenge of modelling consumption  
+  
+Composition of diet is a product of a predator's foraging behaviour, type of prey capture and handling, the availability of prey relative to the predator, and the preferences of the predator given a selection.  The dynamics of predators to prey is usually captured in some form of functional response, most often as Holling disc/Type II response.  Type III responses usually relate to predators that require a threshold of prey density before capture is possible, such as would be expected for baleen whales.  Type I responses relate to consumption of resources solely according to their density without any limitation.  These functional responses relate a single predator to a single prey, yet experts acknowledge the need for multispecies functional responses, including different alternative prey, the potential for interference by predators and the possibility of higher predators influencing predation of lower trophic level predators.  As yet, there is no formal mathematical formulation of multispecies functional responses (Abrams 2022).  
+  
+At equilibrium, the functional relationships of predators and prey in an assemblage are distilled into a "diet matrix" of the proportions of total consumption by a predator to which each species contributes.  This matrix underpins the formulation of equilibrial food webs in Ecopath.  However, the diet matrix is unlikely to be true outside of that equilibrium when the forces of foraging ecology are at work.  Moreover, a diet matrix will constrain the solution of relative abundances in the biomass pools of an equilibrial food web, irrespective of other pressures that may be influencing the food web.  
+  
+What is a suitable approximation of multi-species functional relationships that can account for the diet matrix at a specified equilibrium but will enable flexibility in the solution for a food web under conditions different from that equilibrium?  
+  
+For pelagic systems, the probability of encountering suitable prey (e.g. based on suitable size range) is a good starting point, as in size-based food-web modelling (Blanchard et al 2010).  Can all potential prey be considered to be available as a pool, with consumption according to relative abundances?  Is encounter probability based on presence/absence alone or includes relative size of individuals? How does the probability of encounter change between pools, such as through swarming by krill? (see Maury et al)  
+  
+A simplified version of a consumption model is used to estimate parameters for a food web estimated using Ecopath.  While Ecosim also estimates model parameters, a general version taking account of different size-based formulations is used here.  The aim here is to provide flexibility in estimating different potential equilibrial network relationships under different conditions rather than precisely specifying different parameters for a long-term simulation.  For that reason, a Holling Type II functional relationship is used with a multi-species approach based on time spent foraging on individual species.
+
+The basic model of consumption, Q, of prey,j, by predator,i, is 
+
+$$
+Q'_{i,j} = \frac{c_{i,j}}{\sum_{j'}c_{i,j'}} B_i \hat{I}_{i,j} g_{i,j}(N_j)
+$$
+where $c_{i,j}$ is the selectivity of a prey item, B is the biomass of the predator, N is the biomass of prey and g is the per biomass functional relationship determining the proportion of the maximum ingestion rate of that prey species, $\hat{I}$, which is the maximum biomass of prey that can be consumed in the time period given saturated prey density and no other prey types are available.  A selectivity function could be included but not at present (following Christensen et al 2008).  This formulation assumes that all prey are independent and foraging time distributed according to the accumulated selectivity functions.
+
+The vector outputs of Ecopath, production to biomass and consumption to biomass, can be used to estimate $\hat{I}$ by numerically solving two related sets of simultaneous equations, noting that the complete predator-prey matrix of maximum ingestion rates will be imperfectly fit because Ecopath models are themselves not perfect balanced models.
+
+Equation 1. Predator Diet
+
+Consumption of prey using the Ecopath parameters is
+$$
+Q'_{i,j} = d_{i,j} \left( \frac{Q_i}{B_i} \right) B_i
+$$
+where the proportion in the diet, d, and predator biomass are input to Ecopath.
+
+Equation 2. Predation on a prey type
+
+Mortality of prey through consumption is
+$$
+
+\sum_{i}Q'_{i,j} = EE_j\left( \frac{P_j}{B_j} \right) B_j - Y_j - E_j - BA_j
+$$
+
+ 
+
+
+```{r foraging, echo=FALSE, eval=FALSE}
+
+# determine feeding probability from ecopath files
+
+eMod<-McCormack
+Nsp<-nrow(eMod$names)
+
+PreyPref<-sapply(seq(1,Nsp,1),function(m,eM){  # loop through each predator to determine preference
+Diet<-eM$diet[,m] *eM$params[m,"Q.B"]*eM$params[m,"B"]
+Diet[is.na(Diet)]<-0
+PpB<-eM$params[,"P.B"]
+PpB[is.na(PpB)]<-0
+Prob<-Diet*0
+subG<-Diet>0
+nD<-sum(subG)
+a<-rep(1,nD) # temporary
+if(nD>0 & sum(PpB[subG])>0){
+    x<-rep(1/nD,nD)
+    res1<-nlm(rootFn,x,Diet[subG],eM$params[subG,"B"],3*eM$params[subG,"B"],PpB[subG])
+    Prob[subG]<-res1$estimate
+    } # end if 
+
+      return(Prob)
+    },eMod)
+print(eM$names$Name)
+print(PreyPref)
+
+eM<-McCormack
+Nsp<-nrow(eMod$names)
+m<-26
+
+rootFn<-function(p,g,N,N50,PpB) sum((g-p*N/(N50+N)*PpB*N)^2) # Holling disc
+
+Diet<-eM$diet[,m] #*eM$params[m,"Q.B"]*eM$params[m,"B"]
+Diet[is.na(Diet)]<-0
+Prob<-Diet*0
+subG<-Diet>0
+nD<-sum(subG)
+a<-rep(1,nD) # temporary
+if(nD>0){
+    x<-rep(1/nD,nD)
+    res1<-nlm(rootFn,x,Diet[subG],eM$params[subG,"B"],a,eM$params[subG,"P.B"])
+    Prob[subG]<-res1$estimate
+    } # end if 
+              
+print(Prob[subG])
+print(eM$names[subG,"Name"])
+
+
+
 ```
 
-## Including Plots
+#### Processing Ecopath data  
+  
+difficulty with Hill et al aggregations is that there is no differentiation between krill and fish pathways in the species pools. e.g. fish-eating penguins versus krill-eating penguins.
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+```{r echo=FALSE, eval=FALSE}
+
+root<-"/Users/andreworca/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
+
+fnReadEcopath<-function(root,fname){
+  names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
+  params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
+  diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
+  avail<-read.csv(paste(root,fname,"_availability.csv",sep=""),header=FALSE)
+  return(list(names=names,params=params,diet=diet,avail=avail))
+     }
+
+McCormack<-fnReadEcopath(root,"McCormack2019")
+# Diet - columns are the percentage diet composition for a consumer
+
+Ballerini$diet*0.01*Ballerini$params[,"B"]
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+### Options for construction
+Steele et al (2011) develop ECOTRAN to enable the incorporation of processes surrounding primary production to influence in ECOPATH model.  
+  
+Oke et al (2013) describe WOMBAT, which has an iron-limited model for primary production, to which the iron-release from whales could easily be added.  
+  
+Kearney et al (2017) have a generalised ecosystem model that can be attached to an Earth-system model.  
+  
+Melbourne-Thomas et al (2015) have a nitrogen-based model for primary production but without iron limitation.  
+  
+General papers for model standardisation and fitting: Hill et al 2021; Pinkerton et al papers.
+  
+  
+### Converting Ecopath inputs to other forms
+
+
+### Fitting the model  
+    
+There are few regional estimates of abundance that could be used to anchor the model.  The approach is to use ratios of abundance where those ratios can be determined.  For example, the consumption analyses for risk assessments in 48.1 (Trathan etc) have population estimates of predators which can be used for a "current" set of relationships.
+
+Abundances of biomass pools can be estimated or fixed (with error).
+
+see Pinkerton et al for what he does.
+
+
+## Biota  
+
+The main requirement is to estimate nutrient loss from each biomass pool as a rate relative to total biomass consumption (total mass, not nutrient mass) per unit pool biomass (total mass, not nutrient mass). 
+  
+### Primary Production   
+  
+The environments of phytoplankton are changing through light availability, nutrient supply, and ocean temperature.  Changes in these factors are influenced by cloudiness, winds and sea ice.  
+A great challenge is to model iron and silicic acid limitation.  Jess' work estimates a control parameter that encompasses iron and light limitation.  
+  
+Iron is factored into the Kearney and Oke models and more easily allows incorporation of iron limitation and resupply.  (could test sensitivity of outcomes to this - centre the relative calculations on small primary producers and see how everything scales given different levels of iron supply/limitation).  
+
+Need to incorporate limitation of silicic acid and how this can control the abundance of diatoms - how might this limitation change (positively or negatively)
+
+
+  
+### Marine mammals and birds  
+  
+Incorporate environmental impact on young of the year - related to condition of adults (breeding condition - irrelevant in equilibrium model as density dependent) and mortality of young (see papers by Jenouvrier on this).   
+  
+#### Ice breeders e.g. Emperor penguins  
+  
+Recruitment related to perimeter of ice-edge in November.  Approximate this as the square-root of sea ice >90% concentration  
+  
+  
+## Trophic linkages and efficiences  
+  
+Existing Ecopath models for Southern Ocean food webs are used as a foundation for developing a generalised network model with quantative linkages.  
+  
+need to account for excretion and loss.  
+  
+
