@@ -1,0 +1,393 @@
+---
+title: "SOweb - Inputs"
+author: "Andrew Constable"
+date: "2023-12-30"
+output: pdf_document
+bibliography: ["SOweb.bib"]
+biblio-style: "ecology"
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(bookdown)
+```
+
+# Inputs  
+  
+
+  
+## Nutrients  
+  
+Nutrients bound the estimation of biomasses of the different biological nodes.
+
+Nitrogen, phosphorous and carbon are not limiting in the Southern Ocean.  Only pools of dissolved silicate (silicic acid) and dissolved iron are included in the steady-state model as they are the limiting nutrients for phytoplankton.  In both cases, a climatology of winter concentrations is used to initialise the deep water concentrations below the mixed layer.  From that time, changes in the mixed layer and deep water pools are a product of exchange between the pools, primary production, recycling and remineralisation.   
+    
+Winter concentrations for the recently published dissolved iron climatology [@Huang__2022_RN20701] and the silicic acid climatology [@Boyer__2018_RN20704] were respectively obtained from https://zenodo.org/records/6994318 and https://www.ncei.noaa.gov/access/world-ocean-atlas-2018/bin/woa18oxnu.pl.  
+   
+  
+## Environment  
+  
+  
+Note that the solution will be very dependent on the proportion of the system expected to be exported.  You could configure fixed biomasses to anchor the model and estimate export flux or fix export flux and estimate biomasses.  They cannnot be estimated together!
+  
+  
+### Incident radiation  
+  
+  
+### Temperature  
+  
+  
+### Sea ice
+
+Notes on sea ice
+Will Hobbs paper (to come)
+Changes in season to season persistence -Libera etal 2022  (should lose memory from one summer to next because of depth of mixed layer
+see Schroeter et al 2023 on spatial coherence in sea ice anomalies since abrupt critical transition (2006)                                                            
+                                                            )
+Alexander Haumann (AWI) abrupt sea ice ocean transition
+following on Will Hobbs talk on role of ocean in sea ice transition
+declines observed previouslyin spring season but now in autumn (growing) season
+abrupt change in complex systems (Scheffer etal 2009)
+Importance of subsurface ocean warming (Meehle)
+  
+  
+### Mixed Layer Depth  
+  
+  
+ 
+
+## Biota  
+  
+The main requirement is to estimate nutrient loss from each biomass pool as a rate relative to total biomass consumption (total mass, not nutrient mass) per unit pool biomass (total mass, not nutrient mass). 
+  
+Modelling environmental impacts on different biota is accommodated in the following ways:
+
+i) **mixed layer depth** affects availability of prey to predators and, in the case of phytoplankton, altering light and nutrient conditions
+
+ii) **sea ice retreat and advance** affects availability of prey production to predators (in time and in space), e.g. exposure of krill larvae to predation, exposure of Emperor penguin young of the year to predation (reduces handling time/increases maximum ingestion rate of predators)
+
+iii) **sea ice extent/concentration** affects foraging time and therefore metabolic requirements of air-breathers, as well as reduces light for production etc.
+
+iv) **rainfall** affects breeding conditions and young of the year survival in land-based colonies, which could be increased non-predation mortality that is lost to the system (feeding shore birds not included here) or adds more to detrital/carcass pools.
+
+v) **iceburg calving & ice shelf collapse** affects iron supply and recruitment rate of silverfish.
+
+
+Describe different nodes encompassing biology and why they are grouped that way - are broadly grouped into 8 classes based on their behaviour and distribution:
+1. nutrients & organic matter
+2. protists
+3. benthos
+4. dispersed pelagos
+5. schooling pelagos
+6. filtering divers (Baleen whales)
+7. divers (flying birds, penguins, and toothed whales.  These are grouped into depth strata where most feeding occurs, ice association and prey.)
+8. hunters (top predators - leopard seals and killer whales)
+
+These are further divided based on information available and their separation in time, space and feeding type contributing to broad differences in their ecological functions.  As a result there is a natural bias to greater detail amongst larger organisms.  Nevertheless, greater differentiation is possible within this framework, should such differentiation be required.  
+
+There are few regional estimates of abundance that could be used to anchor the model.  The approach is to use ratios of abundance where those ratios can be determined.  For example, the consumption analyses for risk assessments in 48.1 (Trathan etc) have population estimates of predators which can be used for a "current" set of relationships.  
+  
+Abundances of biomass pools can be estimated or fixed (with error).  
+  
+see Pinkerton et al for what he does.  
+  
+etc.   Cross-tabulate environmental changes of different scenarios with how the parameters of models of different biota are altered to reflect the changes.
+  
+  
+### Primary Producers    
+  
+Two phytoplankton groups are represented in this model.  Diatoms have been divided in some biogeochemical models (e.g. Losa et al 2019) into small and large.  However, they are kept as one group because they are dominated by the faster growing, heavily silicious diatoms preferred by krill.  The second group includes all other phytoplankton, including Phaeocystis and coccolithopheres, which are smaller and not dependent on silicic acid.  This latter group tends to be important when iron is depleted, which also corresponds to when silicic acid is depleted (??check Henley et al 2020).  
+  
+
+  
+The environments of phytoplankton are changing through light availability, nutrient supply, and ocean temperature.  Changes in these factors are influenced by cloudiness, winds and sea ice.  
+A great challenge is to model iron and silicic acid limitation.  Jess' work estimates a control parameter that encompasses iron and light limitation.  
+  
+Iron is factored into the Kearney and Oke models and more easily allows incorporation of iron limitation and resupply.  (could test sensitivity of outcomes to this - centre the relative calculations on small primary producers and see how everything scales given different levels of iron supply/limitation).  
+
+Need to incorporate limitation of silicic acid and how this can control the abundance of diatoms - how might this limitation change (positively or negatively)
+  
+Productivity of phytoplankton groups will govern available production in higher trophic levels.  How to partition total production between phytoplankton groups....  
+  
+  
+   
+### Higher Trophic Levels  
+  
+General parameters estimated from existing Ecopath models.    
+Outline the estimation and the results.  
+
+  
+Incorporating impacts on recruitment  
+Marine mammals and birds - Incorporate environmental impact on young of the year - related to condition of adults (breeding condition - irrelevant in equilibrium model as density dependent) and mortality of young (see papers by Jenouvrier on this).   
+Recruitment related to perimeter of ice-edge in November.  Approximate this as the square-root of sea ice >90% concentration  
+
+  
+### Consumption  
+
+??revise this text to be deriving model parameters.  move rest of text to the model  
+
+, most often as Holling disc/Type II response.  Type III responses usually relate to predators that have difficulty feeding on low densities or prey.  Type I responses relate to consumption of resources solely according to their density without any limitation.  These functional responses relate a single predator to a single prey, yet experts acknowledge the need for multispecies functional responses, including different alternative prey, the potential for interference by predators and the possibility of higher predators influencing predation of lower trophic level predators.  As yet, there is no formal mathematical formulation of multispecies functional responses (Abrams 2022).  
+  
+At equilibrium, the functional relationships of predators and prey in an assemblage are distilled into a "diet matrix" of the proportions of total consumption by a predator to which each species contributes.  This matrix underpins the formulation of equilibrial food webs in Ecopath.  However, the diet matrix is unlikely to be true outside of that equilibrium when the forces of foraging ecology are at work.  Moreover, a diet matrix will constrain the solution of relative abundances in the biomass pools of an equilibrial food web, irrespective of other pressures that may be influencing the food web.  
+  
+What is a suitable approximation of multi-species functional relationships that can account for the diet matrix at a specified equilibrium but will enable flexibility in the solution for a food web under conditions different from that equilibrium?  
+  
+For pelagic systems, the probability of encountering suitable prey (e.g. based on suitable size range) is a good starting point, as in size-based food-web modelling (Blanchard et al 2010).  Can all potential prey be considered to be available as a pool, with consumption according to relative abundances?  Is encounter probability based on presence/absence alone or includes relative size of individuals? How does the probability of encounter change between pools, such as through swarming by krill? (see Maury et al)  
+  
+A simplified version of a consumption model is used to estimate parameters for a food web estimated using Ecopath.  While Ecosim also estimates model parameters, a general version taking account of different size-based formulations is used here.  The aim here is to provide flexibility in estimating different potential equilibrial network relationships under different conditions rather than precisely specifying different parameters for a long-term simulation.  For that reason, a Holling Type II functional relationship is used with a multi-species approach based on time spent foraging on individual species.
+
+The basic model of consumption, Q, of prey,i, by predator,j, is 
+
+\begin{equation} 
+\label{eq:Qprime}
+Q'_{i,j} = B_j\frac{c_{i,j}}{\sum_{i'}c_{i',j}} g_{i,j}(N_i,\tilde{I}_{i,j}) EE_i\left( \frac{P_i}{B_i} \right)
+\end{equation}
+
+where $c_{i,j}$ is the selectivity of a prey item, B is the biomass of the predator, N is the biomass of prey and g is the per biomass functional relationship determining the ingestion rate of that prey species if no other prey types are available.  The amount consumed is that which maintains equilibrium, which is the production arising from that biomass.
+
+A Holling Type II function response is used here with handling time per prey biomass being inversely proportional to the maximum ingestion rate relative to the standing stock (Christensen et al 2008), such that
+
+\begin{equation} \label{eq:Holling2}
+g_{i,j}(N_i,\tilde{I}_{i,j})=\frac{a_{i,j}N_i}{1+\frac{a_{i,j}}{\tilde{I}_{i,j}}N_i}
+\end{equation}
+
+For completeness, the maximum ingestion rate per predator biomass per time is the product of the standing stock ingestion rate and the production to biomass ratio of the prey discounted by the ecotrophic efficiency, although this is not used in the calculations.
+
+\begin{equation} \label{eq:Imax}
+\hat{I}_{i,j}=\tilde{I}_{i,j}\left( \frac{P_i}{B_i} \right)EE_i
+\end{equation}
+  
+### Availability of prey to predators
+  
+Availability of prey to predators is different from the selectivity function, which is where shifting preferences may be included.  Here, availability represents the proportion of the prey that is available to a predator.  This can involve geographic separation as well as separation by depth.  Geographic separation could relate, for example, by the proportions of a population associated with sea ice or with the continental shelf.
+
+Availability determined by overlap in pelagic depth strata is the product of the probabilities of predator and prey in the area of overlap, such that
+
+$$
+A_{i,j}=Pr[Overlap_{deep}\leq Depth_j \leq Overlap_{shallow}]*Pr[Overlap_{deep}\leq Depth_i \leq Overlap_{shallow}]
+$$
+where
+
+$$
+Overlap_{shallow}=min[Depth_{i,shallow},Depth_{j,shallow}]\\
+Overlap_{deep}=max[Depth_{i,deep},Depth_{j,deep}]
+$$
+  
+I assume a uniform probability distributions of predators and prey within their depth ranges and use first letters for variables and subscripts to give the following estimates of overlap of predators, j, with prey, i:
+
+$$
+A_{i,j}=\frac{(O_s-O_d)^2}{(D_{i,s}-D_{i,d})(D_{j,s}-D_{j,d})}
+$$
+
+```{r,echo=FALSE,eval=FALSE}
+
+calcAvailabilityMatrixFromDepthRange<-function(D){ # two column matrix - rows = nodes, cols = top,bottom depths in range
+sapply(seq(1:nrow(D)),function(p,D){
+pD<-D[p,]
+apply(D,1,function(nD,pD){
+  Os<-min(nD[1],pD[1])
+  Od<-max(nD[2],pD[2])
+  return(if(Od<Os) (Os-Od)^2/((nD[1]-nD[2])*(pD[1]-pD[2])) else 0)
+},pD)
+},D)  
+}# end calcAvailabilityMatrixFromDepthRange
+
+DepthRanges<-as.matrix(eMod$params[,c("DepthTop","DepthBottom")])
+PreyAvail<-calcAvailabilityMatrixFromDepthRange(DepthRanges)
+print(PreyAvail)
+
+```
+
+  
+### Maximum Standing Stock Ingestion Rate  
+  
+The vector outputs of Ecopath, production to biomass and consumption to biomass, can be used to estimate $\tilde{I}$ by numerically solving two related sets of equations, noting that the complete predator-prey matrix of maximum standing stock ingestion rates will be imperfectly fit because Ecopath models are themselves not perfect balanced models.
+
+Equation 1. Predator Diet
+
+Consumption of prey using the Ecopath parameters is  
+
+\begin{equation} \label{eq:QprimeEcopathDiet}
+Q_{i,j} = d_{i,j} \left( \frac{Q_j}{B_j} \right) B_j
+\end{equation}
+
+where the proportion in the diet, d, and predator biomass are input to Ecopath.
+
+Equation 2. Predation on a prey type  
+   
+Mortality of prey through consumption is  
+  
+\begin{equation} \label{eq:sumQprimePreyEcopath}
+\sum_{i}Q'_{i,j} = EE_i\left( \frac{P_i}{B_i} \right) B_i - Y_i - E_i - BA_i
+\end{equation}
+
+where EE is the ecotrophic efficiency (the proportion of production used in the food web), Y is the fishing yield, E is the emigration out of the system and BA is the biomass accumulation.  Both E and BA can be used to help balance the model but, if greater than zero, imply a lack of internal equilibrium.
+  
+The matrix of maximum standing stock ingestion rates is solved by minimising the sums of squares of the combined equations:
+
+\begin{equation} \label{eq:solveIngestionSS}
+SS=\sum_i \left( 1 - \frac{\sum_{j} Q_{i,j}}
+                          {\sum_{j}Q'_{i,j}}\right)^2
+\end{equation}
+
+```{r foraging, echo=FALSE, eval=FALSE}
+# determine max ingestion rates using numerical methods
+
+# Functions  ###########
+calcQprime<-function( # returns vector of prey consumed
+                 I  # vector - max prey ingestion rates for predator relative 
+                    #              to prey standing stock
+                ,c  # vector - prey selectivities for predator
+                ,N  # vector - prey biomasses for predator
+                ,A  # vector - prey availability to predator
+                ,PB # vector - prey productivity to biomass ratio
+                ,EE # vector - ecotrophic efficiency of prey
+                ,B  # scalar - Biomass of predator
+                ){
+                res<-c*0
+                if(sum(c)>0) res<-c/sum(c)*B*Holling2(N,I,A)*EE*PB
+                return(res)
+                }
+
+Holling2<-function( # returns vector proportion of max ingestion consumed
+                   N # vector - prey biomasses
+                  ,I # vector - maximum ingestion rate relative to standing stock N
+                  ,A # vector - availability of prey to predator
+                  ){
+  mask<-I>0
+  res<-I
+  res[mask]<-A[mask]*N[mask]/(1+A[mask]*N[mask]/I[mask])
+  return(res)
+  }
+
+rootFn<-function(I              # vector of values for max Ingestion (changed to matrix)
+                ,PredDiet # list of relevant diet matrices - cols = predators, rows = prey: 
+                                #  c : selectivity of prey by predator
+                                #  d : proportions of prey in predator diet
+                                #  A : availability of prey to predator
+                ,B              # vector - biomasses of each pool
+                ,PB             # vector - production to biomass ratio for each pool
+                ,QB             # vector - consumption to biomass ratio for each pool
+                ,EE             # vector - ecotrophic efficiency for each pool
+                 ){
+                 n<-nrow(PredDiet[[1]])
+                 Iprime<-PredDiet$c*0
+                 Iprime[PredDiet$c>0]<-I
+                 Qprime<-sapply(seq(1,n,1),function(j,I,Pdiet,B,PB,EE){
+                   calcQprime(I[,j],Pdiet$c[,j],B,Pdiet$A[,j],PB,EE,B[j])
+                   },Iprime,PredDiet,B,PB,EE)
+                 
+                 di<-apply(PredDiet$d,1,function(d,B,QB){sum(d*B*QB)},B,QB)
+                 qi<-apply(Qprime,1,sum)
+                 return(sum((1-di[di>1]/qi[di>1])^2))
+
+ } # end root function
+
+# Ecopath model
+
+eMod<-McCormack
+
+# Prepare data
+
+Nsp<-nrow(eMod$names)
+
+EstI<-!is.na(eMod$params[,"Q.B"])  # only estimate I for these groups (others do not consume)
+In_B<-eMod$params[,"B"]
+In_PB<-eMod$params[,"P.B"]
+In_PB[is.na(In_PB)]<-1  # consume biomass even though no production occurs (e.g. detritus)
+In_QB<-eMod$params[,"Q.B"]
+In_QB[is.na(In_QB)]<-0  # consume biomass even though no production occurs (e.g. detritus)
+In_EE<-eMod$params[,"EE"]
+
+Diet<-eMod$diet
+Diet[is.na(Diet)]<-0
+Selectivity<-Diet
+Selectivity[Selectivity>0]<-1  # selectivity is determined by relative biomass (equal time).
+
+PredDiet<-list(c=as.matrix(Selectivity)
+              ,d=as.matrix(Diet)
+              ,A=as.matrix(PreyAvail))   # set to 1 if not to use availability matrix
+# create availability matrix if input is scalar
+if(length(PredDiet$A)!=length(PredDiet$d)) PredDiet$A <- matrix(PredDiet$A,nrow=Nsp,ncol=Nsp)
+
+# Solve
+I<-Selectivity*eMod$params[,"B"]/20
+I<-I[Selectivity>0]
+
+res1<-nlm(rootFn,I              # vector of values for max Ingestion (changed to matrix)
+                ,PredDiet # list of relevant diet matrices - cols = predators, rows = prey: 
+                                #  c : selectivity of prey by predator
+                                #  d : proportions of prey in predator diet
+                ,In_B    # vector - biomasses of each pool
+                ,In_PB  # vector - production to biomass ratio for each pool
+                ,In_QB  # vector - consumption to biomass ratio for each pool
+                ,In_EE   # vector - ecotrophic efficiency for each pool
+                ,iterlim=10000) # end call to root function
+        
+resI<-Selectivity
+resI[Selectivity>0]<-res1$estimate
+write.csv(resI,file="resI.csv")
+
+
+```
+
+#### Non-Predation mortality from Ecopath data
+
+Non-predation mortality of a species in Ecopath is the loss of production not due to predation, the latter of which is explained by the ecotrohic efficiency.
+
+??Need to consider waste through excretion and defaecation and feeding inefficiency....
+
+$$
+M0_j=(1-EE_j)\left(\frac{P_j}{B_j}\right)+Waste ?check
+$$
+
+```{r echo=FALSE,eval=FALSE}
+M0<-(1-eMod$params[,"EE"])*eMod$params[,"P.B"]+Waste
+```
+
+#### Respiration per mass
+
+Non-production resources (mostly respiration) Respiration of a species ...
+
+factor in change in respiration due to change in foraging activity e.g. change in foraging range
+
+
+$$
+R_j<-\left(\frac{Q_j}{B_j}\right)-\left(\frac{P_j}{B_j}\right)
+$$
+
+```{r echo=FALSE,eval=FALSE}
+R<-(eMod$params[,"Q.B"]-eMod$params[,"P.B"])
+
+```
+
+
+
+#### Processing Ecopath data  
+  
+difficulty with Hill et al aggregations is that there is no differentiation between krill and fish pathways in the species pools. e.g. fish-eating penguins versus krill-eating penguins.
+
+
+
+```{r echo=FALSE, eval=FALSE}
+
+root<-"/Users/andreworca/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
+
+fnReadEcopath<-function(root,fname){
+  names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
+  params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
+  diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
+  avail<-read.csv(paste(root,fname,"_availability.csv",sep=""),header=FALSE)
+  return(list(names=names,params=params,diet=diet,avail=avail))
+     }
+
+McCormack<-fnReadEcopath(root,"McCormack2019")
+# Diet - columns are the percentage diet composition for a consumer
+
+```
+
+
+
+

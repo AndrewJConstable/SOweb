@@ -1,0 +1,64 @@
+---
+title: "SOweb - Introduction"
+author: "Andrew Constable"
+date: "2023-12-30"
+output: pdf_document
+bibliography: ["SOweb.bib"]
+biblio-style: "ecology"
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(bookdown)
+```
+
+# Introduction
+
+Paragraphs describing change in Southern Ocean ecosystems but how there is more information is available on relationships between species and the impacts of changing environments on individual species than on trajectories and relative states of species within the system.....
+
+An approach is needed to help indicate the pressure of change on Southern Ocean ecosystems using available data and knowledge but with as few assumptions as possible.  Here, a pressure is one that implies directional movement of change of the ecosystem from one state to another, though not specifying the pathway or time that would possibly be taken.  The problem is understood by first considering the nature of an ecosystem and how to characterise directional change in a multidimensional system.  
+  
+## Network modelling  
+  
+  see network modelling group in Endnote
+  
+
+  
+
+## What is a stable state for an ecosystem?
+An ecosystem comprises a number of state variables (nodes) and relationships of how those variables affect one another (edges).  Together the nodes and edges comprise a network model.  A steady-state ecosystem model (hereafter SEM) is formed when the magnitude of the nodes and the rates of change of the nodes dictated by the edges all balance.  This underpins network modelling (refs here).  The model may have a resonance in two or more nodes when the combination of edges does not allow a stable equilibrium amongst the nodes. Greater resonance across many nodes may give rise to an unstable network.  The degree to which stability is conferred by the edges can be tested by perturbing a network of nodes and see if the network will gravitate to a "typical" arrangement. Of course, the combination of edges may give rise to a number of stable states of the relative magnitudes of the nodes.  
+  
+In reality, a steady-state system is a dynamic projection over a relevant time period expected to yield a steady state; the time period is often set as one year.  Steady-state theory allows simplification of the dynamics with a focus on the nodes.  It allows the application of elegant mathematics to explore what happens to the network if pressure is exerted on a node.  Quantitative network modelling requires good knowledge of the relative magnitude of the nodes, the fluxes between nodes and how pressures may change fluxes.  But what happens if fluxes are determined by non-linear processes and pressures within the time step of the steady-state system.  The averaging process of steady-state models may over-ride such directional non-linear pressures.    
+  
+Dynamic models are often used to examine these relationships but can require greater specificity in the nature of the edges.  A statistical approach for examining the same properties is to use likelihood methods, where the likelihood of the arrangement of nodes and edges being in steady-state is a measure of stability of that arrangement.  Minimising the negative likelihood allows a search of the combinations of magnitudes of nodes to find local and global minima and to map the likelihood function.  A relatively flat surface would suggest an unstable set of relationships.  The strength of local and global minima would indicate the potential for stability. 
+
+## Characterising change in a multidimensional system  
+  
+Network modelling helps characterise change.  Qualitative network modelling examines the directional pressure on nodes arising from press perturbations on one or more nodes (e.g. Melbourne-Thomas et al. 2013).  But what happens if any of the rates of change (edges) are modified?  Or the interactions between nodes are non-linear or have switches/thresholds or tipping points?  
+
+the likelihood of a perturbed set of nodes and/or edges being in equilibrium can indicate its relative stability.  Moreover, determining local and global minima of the node vector with the new relationships and comparing these with the original minima indicates a directional pressure of change arising from the perturbations. 
+
+
+
+Need free assembly and enable removal of nodes to represent extinction/extirpation....
+
+
+, , given the limitations of knowledge.  Moreover, an approach is needed that allows free assembly of the relative dominance of species;  exploration of alternative stable states within a common functional configuration is needed.  This freedom of assembly allows for considering what alternative stable states comprise the natural envelope of states.  A likelihood on each of these alternatives then enables which states could be observed more often.  When the functional configuration shifts due to external, directional forcing, what might be expected of the envelope of states and the individual likelihoods of states. (note this is what I was thinking back in 2003). 
+
+SOweb uses dynamic biomass pools to model Southern Ocean food webs with top-down and bottom-up processes. Top down processes include individual representations of predator-prey dynamics. Bottom-up processes include habitat influences on different groups.  The relative biomass of each pool is estimated using Bayesian statistics, based on external parameterisation of the top-down and bottom-processes and prior estimates of each biomass.  Realisations of each SOweb are then compared to determine a trajectory from a base realisation.
+  
+This approach advances the qualitative network modelling of Melbourne-Thomas et al (2013) by enabling quantitative, scaled feedbacks between different biomass pools resulting in estimates of relative biomass of each pool.  While also ensuring balanced inputs and outputs across the web, this approach is an advance on the Ecopath system because it better enables pool-specific attributes to be accommodated rather than generalised in the same set of parameters for each pool.  
+  
+# Aims  
+  
+The aim of this model is to evaluate 'big' uncertainties in knowledge of ecosystem structure and function and how sensitive the system may be to various assumptions of the interactions between species dynamics, climate change and fishing.  
+  
+e.g. examine the interactions of fishing not related to consumption competition. (disturbance of swarms, hyper-concentration of krill);  Iron limitation and the role of iron recycling; Metabolism.  What processes are large gaps in understanding?  How can issues be reconciled in time and space?  
+  
+How do these various outcomes look when plotted using non-metric multi-dimensional scaling.  
+  
+  
+
+

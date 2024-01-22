@@ -1,0 +1,343 @@
+---
+title: "SOweb - Model"
+author: "Andrew Constable"
+date: "2023-12-30"
+output: pdf_document
+bibliography: ["SOweb.bib"]
+biblio-style: "ecology"
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(bookdown)
+```
+
+# A Steady-state Ecosystem Model (SEM)  
+  
+Generalised production models are well considered in the literature (Yodzis papers from 1992), requiring models of nodes at the base of the food web then driving the food web, in which nodes are constrained by prey as well as other forces.   
+  
+Creating a steady-state ecosystem model (SEM) allows for a full closure of logic to sustain a food web in perpetuity.  Qualitative networks are intended to represent that closure but often only represent a part of the story.  Quantitative network models allow for flows between nodes to be expressed but will only demonstrate a balanced representation when the inputs and outputs of the model can be expressed as well.  Finding SEMs that arise under specific forcing conditions enables discussions around what forcing factors are important for governing ecosystem structures.  They also enable consideration of the pressures and directions of change that one configuration of ecosystem may be under given different or changing forcing conditions.  
+  
+This process allows simplification of ecosystem structure and function in order to focus on what is known and to minimise the influence of the 'unknowns' on the outcomes.  Of course, a dynamic system has feedbacks and oscillations which, in reality, are unable to be dampened to a constant state.  Understanding inherent variability is not the purpose of this analysis.  Instead, it aims to identify whether we can expect gross differences in the underlying relationships given substantial change in the environment.  Once (if) identified then the relative importance of variability in driving futures can be focussed on the suite of 'webs' that appear possible.  
+  
+Ecopath with Ecosim relies on estimates of abundance of different biomass pools for scaling a SEM, and for tuning the model i.e. to "estimate" biomasses and trophic linkages that are poorly estimated.  It is regarded as a 'top-down' ecological model because of its emphasis on balancing food consumption with biomass mortality from predation within a biomass pool.  That balance is created by discounting food consumption by metabolic, waste and non-predatory mortality processes.  Incorporating 'bottom up' processes influencing primary production requires either to scale the biomass of primary producers or by driving the Ecosim component of the system by varying their biomasses through time.  The 'estimation' process for establishing the starting conditions, i.e. Ecopath, remains unaffected by biogeochemistry and its feedbacks.  
+  
+The inclusion of nutrient pools and feedbacks to those pools, from recylcing of nutrients from trophic excretia, faeces and bodies, is difficult in Ecopath because these pathways are poorly estimated, even though they are well described.  
+  
+Here, I elaborate a SEM including nutrient feedbacks and switches between different energy pathways based on physiological and ecological limits.  
+  
+    
+      
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{State and environmental forcing variables in the Steady-state Ecosystem Model}}
+\begin{tabular}{l c l}
+\\
+\hline
+\\
+\textbf{Variable} & \textbf{Symbol} & \textbf{Units} \\
+\\
+\hline
+\\
+\textit{Arena} & &\\
+$\quad$Latitude & $L$ & $^{\circ}$ \\
+$\quad$Area & $A$ & $km^2$ \\
+$\quad$Depth & $Z$ & $m$ \\
+\\
+\textit{State Variables} & &\\
+$\quad$Detritus & $D$ & $tC.km^{-3}$ \\
+$\quad$Macronutrients (Silicate) & $Si$ & $mmol.m^{-3}$ \\
+$\quad$Micronutrients (dissolved Iron) & $dFe$ & $\mu{mol}.m^{-3}$ \\
+$\quad$Phytoplankton & $P$ & $tC.km^{-2}$ \\
+$\quad$Higher trophic levels & $B$ & $tC.km^{-2}$ \\
+\\
+\textit{Environmental Forcing Variables} & &\\
+$\quad$Mixed layer depth                          & $MLD$             & $m$          \\
+$\quad$Incident solar radiation at surface        & $I(0,t)$          & $W.m^{-2}$    \\
+$\quad$Sea ice thickness                          & $SIT$             & $m$           \\
+$\quad$Temperature                                & $T$               & $^{\circ}C$    \\
+\\
+\hline
+\end{tabular}
+\label{ex:SEMvars}
+\end{table}
+```
+
+
+
+??? some extra text - Options for construction
+Steele et al (2011) develop ECOTRAN to enable the incorporation of processes surrounding primary production to influence in ECOPATH model.  
+  
+Oke et al (2013) describe WOMBAT, which has an iron-limited model for primary production, to which the iron-release from whales could easily be added.  
+  
+Kearney et al (2017) have a generalised ecosystem model that can be attached to an Earth-system model.  
+  
+Melbourne-Thomas et al (2015) have a nitrogen-based model for primary production but without iron limitation.  
+  
+  
+
+## Ecosystem Base  
+  
+The base of the ecosystem comprises the various nutrient pools, the processes for making these pools available for biological production (bioavailability), and primary production, which transfers energy into the food web.  Photosynthesis is the means of energy production in the model presented here but the logic could easily be extended to chemosynthesis.  These interactions are generalised to enable multiple nutrient pools and phytoplankton groups to be included in the model.  
+  
+    
+```{=latex}
+\begin{figure}[!ht]
+\centering
+\includegraphics[width=12cm]{./Images/BGC_pathways.jpg}
+\centering
+\textbf{\caption{Nutrient flows in the Southern Ocean}}
+\label{ex:BGC}
+\end{figure}
+```
+
+     
+The annual advance and retreat of sea ice is difficult to incorporate easily into a steady-state model.  This is because the impacts in space and time over a region of interest are not something that can be readily turned into an average cycle of advance and retreat that uniformly affects the region.  Some account needs to be given to the proportion of the area that is permanently open ocean, permanently covered by fast ice, and scaled timings of advance and retreat from an area. The equations for nutrient, detrital and primary production pools are developed with a specified seasonal ice dynamic.  How these are are to be used across a regional steady-state model is considered in a subsequent section.
+
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Parameters used for primary production in diatoms and other phytoplankton (modelled on haptophytes) in the NPZD model of Base Production}}
+\begin{tabular}{l c c c l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Value}     &     & \textbf{Units} \\
+\\
+\hline
+\\
+\textit{Light}                       &     & \textit{Value}    &      &   \\
+$\quad$Attenuation PAR through sea ice   & $k_{si}$  & 1.00$^{ * }$     &      & $m^{-1}$ \\
+$\quad$Attenuation PAR through water     & $k_w$     & 0.04$^{ *1}$    &      & $m^{-1}$ \\
+$\quad$Proportion incident radiation photosynthetically active  & $PAR$  &0.43$^{ *1}$     &      & $-$ \\
+\\
+\textit{Growth rate} &     & \textit{Diatoms}     & \textit{Other}     &   \\
+$\quad$Photosynthesis efficiency (initial slope of P-I curve) & $\alpha$  & & control$^{ *1}$ & $$ \\
+$\quad$Maximum growth rate parameters   & $a$  & & 0.6 $^{ *1}$ & $d^{-1}$ \\
+$\quad$                                 & $b$  & & 1.066 $^{ *1}$ & $^{\circ}C^{-1}$ \\
+$\quad$Half saturation constants for nutrient uptake  &  &  &  &  \\
+$\quad\quad$Silicate                                     & $K_{SiO_4}$ & 4.0 $^{ *2}$ & 0.0 $^{ *2}$ & $mmol.m^{-3}$ \\
+$\quad\quad$Dissolved Iron                               & $K_{dFe}$   & 1.0 $^{ *2}$ & 0.1 $^{ *2}$ & $\mu{mol}.m^{-3}$ \\
+\\
+\textit{Stoichiometry} &     &      &      &   \\
+$\quad$Algal carbon to nitrogen ratio & $R_{c:n}$  & 7.0 $^{ *2}$ &  7.0 $^{ *2}$ & $mol.mol^{-1}$ \\
+$\quad$Algal chl-a to nitrogen ratio & $R_{chla:n}$  & 2.1 $^{ *2}$ &  0.84 $^{ *2}$ & $g.mol^{-1}$ \\
+$\quad$Algal iron to nitrogen ratio & $R_{fe:n}$  & 0.023 $^{ *2}$ &  0.7 $^{ *2}$ & $mmol.mol^{-1}$ \\
+$\quad$Algal silica to nitrogen ratio & $R_{fe:n}$  & 1.8 $^{ *2}$ &  0.0 $^{ *2}$ & $mol.mol^{-1}$ \\
+$\quad$   & $$  & &  $^{ *}$ & $$ \\
+$\quad$   & $$  & &  $^{ *}$ & $$ \\
+\\
+\hline
+\end{tabular}
+\label{ex:BasePhytoplanktonParameters}
+\end{table}
+```
+References: * 1 Melbourne-Thomas et al 2015; * 2 Jeffery et al 2020   
+    
+### Primary production  
+  
+Primary production in the Southern Ocean is primarily governed (limited) by available light, temperature, and limitation by iron and, in the case of diatoms, silicate (Boyd 2019; Henley 2020).  These factors vary in their influence between species (Petrou et al 2016; Boyd 2019) and with latitude and season (Petrou et al 2016; Deppeler & Davidson 2017).  Seasonal variation in mixed layer depth and the presence of sea ice affects the total radiation exposed to phytoplankton.  Moreover, inter-specific differences in stoichiometry and cell size mean that production by different species results in differential draw-down rates of the nutrient pools; increased surface to volume ratio of smaller cells increases nutrient uptake rate.  Unlike higher trophic levels, primary production and the nutrient pools need to incorporate seasonal changes in these rates, including changes in the mortality rate from consumption, in order to accurately estimate total annual primary production of a taxon.  While growth rates of individual taxa are not expected to be independently affected by different factors (Boyd etc), there are no clear multivariate models for growth rates.  Hence, classical models for growth rates are adopted here, assuming independence between light and nutrient limitation.  
+  
+Melbourne-Thomas et al (2015) model phytoplankton as density, following Kidston et al (2011).  This is modified to include the attenuation of light resulting from the presence of sea ice.  The model is also updated to reflect the changes in the pools of phytoplankton, nutrients and detritus.  As nitrates are not considered to be limiting in the Southern Ocean, the nutrient model is primarily based on iron, with attention to when silicate may also be limiting.  While competition amongst phytoplankton groups is not expected in oligotrophic waters (Behrenfeld et al), a competition term is included to allow for when blooms occur and potentially interfere with nutrient access by less dominant species.
+
+Phytoplankton are assumed to be uniformly distributed throughout the mixed layer and spend equal time at all depths.  With increasing mixed layer depth, cells are expected to redistribute to the additional depth.  With decrease depth, cells at the bottom depths are lost to the benthic detrital pool or exported from the system.  Thus, in units of carbon,  
+  
+$$
+\frac{dP_p}{dt}=P_{p}\left( \bar{J}_{p}(t,T,\vec{N})-G_{p\rightarrow{z}}-\mu_p \right) \\
+\mu_p = Sink+Remin+\frac{[\textrm{max}(\Delta{MLD},0)+\textrm{max}(\Delta{SI},0)]}{MLD}
+$$
+
+$\bar{J}$ is the primary productivity given temperature and the potentially limiting nutrients, *G* is the grazing by zooplankton, and $\mu_p$ is the mortality rate of phytoplankton not associated with grazing, including sinking and remineralisation, and loss through shallowing of the mixed layer. Non-grazing mortality can be a quadratic term but is not applied uniformly in NPZD models. It is not included here but could be easily applied as needed.  
+  
+The growth rate of primary producers is governed by light, temperature and nutrient availability.  In the case of the latter, the rate of uptake of the nutrients is determined by a Holling Type II and the uptake by the most limiting nutrient determines the rate of growth, such that for each phytoplankton group:  
+  
+\begin{equation}
+\begin{split}
+\bar{J}(t,T,\vec{N},MLD) & =J_{max}.min \left( \tilde{J}(t,MLD),gN_1, ...gN_n \right) \\
+J_{max} & = ab^T \\
+\tilde{J}(t,MLD) & =  \frac{2}{MLD}\int_t^{\tau}\int_z^{MLD}J(I)dzdt\\
+J(I) & =\frac{\alpha{}I(z,t)}{\sqrt{J^2_{max}+(\alpha{}I(z,t))^2}}\\
+I(z,t) & =I(0,t)e^{-(k_{si}SI+k_wz)/\beta}PAR \\
+\beta & = \sqrt{1-\left(\frac{\cos \theta}{1.33} \right)^2}\\
+gN_n & =\frac{c_pN_n}{c_pN_n+k_n} \\
+c_p & =1-\sum_{p'\neq{p}}{v_{p'}B_{p'}}
+\end{split}
+\end{equation}
+  
+where day length is $2\tau$, $gN$ is the functional relationship of phytoplankton, *p*, consuming nutrient, *n*.  $a_p$ is the availability of nutrients taking account of the presence of other phytoplankton with *v* being the conversion factor from biomass to volume, where the units of volume are the same as those accounting for density of nutrients.  This term allows for competition between phytoplankton groups as groups form dense blooms based on the size of the population.  
+  
+  
+### Nutrients
+  
+A nutrient pool involves the annual availability of nutrients through new and regenerative sources less consumption, export and scavenging.  Henley et al (2020) summarise the essential components of the annual nutrient budget. The annual cycle begins with an early winter stoichiometry and abundance in surface waters, which is then added to from various sources, such as upwelling of Circumpolar Deep Water (CDW) and melting of sea ice, coupled with losses to primary production and additions from regeneration of biological waste in the detrital pools.  Bioavailability of different micro-nutrients is dependent on chemical and biological processes.  While the nutrient model focuses on bioavailable iron because the Southern Ocean is considered to not have limiting nitrates or phosphates, the nutrient model is generalised for any nutrient group.  
+  
+
+$$ 
+\frac{dN}{dt} =\delta+r-\sum_ps_{pn}\bar{J_p}P_p-L_o
+$$\end{equation}
+
+comprising the contribution from sources, $\delta$ , regeneration/remineralisation from detritus and other biological waste, loss to primary production and other loss through sequestration, export in overturning circulation and other processes such as scavenging of iron.  Note that loss to primary production requires a conversion, *s*, from carbon to the quantity of the relevant nutrient taken up per carbon.
+  
+  
+#### Sources   
+  
+The annual supply of nutrients comes from winter sources for mixing within the surface layer formed in spring coupled with any sources directly inputting to the mixed layer while it is present.  The depth of the mixed layer is shallowed by freshwater stratification (ice melt and precipitation) and deepened by winds.  In a deterministic system, these sources can be expressed in the following way.
+
+\begin{equation}
+\begin{split}
+\delta & = CDW+ICE+be+a  \\ 
+CDW & =\bar{N}_{CDW}*\frac{MLD_{W\rightarrow{}CDW}}{MLD_W}*MLD_S  \\
+ICE & =\sum_{ice}\bar{N}_{ice}*Melt_{ice} \\
+MLD_S & =f(Wind,Melt)
+\end{split}
+\end{equation}
+
+where *be* and *a* are constants for benthic sources (geothermal, sediment resuspension) and aeolian inputs respectively, *ice* types are sea ice and terrestrial ice (glaciers, ice sheet), $\bar{N}$ is the concentration of nutrients per volume water or ice, and *Melt* is the volume of meltwater from the ice source.  Subscripts *W* and *S* are for winter and spring respectively.  Note that the resetting of nutrients in winter is not simply a replacement of nutrients in surface waters by CDW but a mixing of CDW with the surface waters, thereby diluting the nutrient concentrations from those found in the CDW. 
+
+While the role of CDW is likely to be greatest in resetting nutrients by the end of winter, the other sources may have continued contributions throughout the growing season depending on the area in the Southern Ocean and the degree to which they are transported into the mixed layer.  
+  
+The concentration of nutrients in CDW and Terrestrial Ice sources are considered to be constants, with the latter possibly varied by location around the Antarctic continent for where information is available.  The concentration of nutrients in sea ice is dependent on the standing stocks of phytoplankton at the time of sea ice formation, which in turn is influenced by the light and nutrient environments at the timing of freezing.  This is considered below as a loss rate for phytoplankton.  
+  
+Availability of the nutrients for primary production (bioavailability) may need to be factored into this model but, at present, is regarded as a constant for macronutrients.   
+  
+### Regeneration/remineralisation  
+  
+Regeneration and remineralisation of bioavailable nutrients includes a proportion of the detrital pool becoming available, remineralisation of dead phytoplankton and excretion from animals. Thus,  
+  
+$$
+r=\mu_dD'+\sum_j{\gamma_{2,j}B_j}+\sum_p{\gamma_{3p}\mu_pP_p}
+$$
+where P is primary production, D' is the accumulated detritus during the year and $\mu$ are coefficients for the proportion of the pool made bioavailable. ???? is the primary production mortality useful here or should it just go to detritus.???
+  
+### Losses  
+  
+Losses of nutrients to primary production are considered further below, noting that the rates will not be constant through the season (Petrou et al 2016, Henley et al 2020).  
+  
+Stratification (MLD) influencing nutrient availability etc.  
+  
+timing of sea ice retreat and expansion influences primary production through the shift in the light environment and the timing relative to nutrient depletion.  Available phytoplankton in the surface water when freezing occurs will influence nutrient release and seeding when sea ice retreats....  
+  
+### Other losses  
+  
+Scavenging of iron  
+Export in overturning circulation  
+  
+### Stoichiometry and micronutrients  
+  
+  
+
+
+what is in the sea ice would otherwise have been lost - it has a longer regeneration time than within year regeneration....  
+  
+
+
+
+**old text**  
+The food web biomass pools can be better constrained by using available nutrient sequestration rates from different pools.  One difficulty with other methods for balancing the food web is to pre-specify the dietary composition.  This automatically configures the food web to a specific outcome.  In order to have greater range for determining what might be an equilibrium position, the trophic relationships need to be more parsimoniously specified, ie. through direct functional feeding relationships as well as conditioning the potential for competition.  For example, size-based models do this [@Jennings__2004_RN6080;@Jennings__2005_RN6077].  In this case per capita feeding rates are determined and used as a basis for consumptive competition (e.g. potential for capture in a single feeding event) and the maximum rate of consumption of each prey type.   
+  
+### Spatial variation in sea ice dynamics
+
+spatial resolution for considering variability in sea ice dynamics scale of areas to be considered is where 
+
+how about averaging conditions in latitudinal bands with proportions of different conditions within it - depth strata, etc.
+this will give shifting light and general seasonal dynamics of sea ice and temperature that fit with the 'rings'.  The complex areas of oceanography are generally POOZ and further north.
+
+????The question then is how to translate total consumption of phytoplankton to the appropriate bands in order to get the grazing component correct.????
+  
+  
+## Consumers in the food web  
+  
+A modification of the general model of Koen-Alonso & Yodzis (2005) is used here for consumers in the food web in order to explore change in environmental influences on higher trophic levels.  While density-dependent mortality may occur, it is not expected to be a great influence when the system is in equilibrium. These influences are not included here but may need to be considered in a dynamic application of these results.
+  
+$$
+\frac{dB_j}{dt}=B_j\left( -T_j+\sum_k e_{kj}F_{kj} \right)-\sum_iB_iF_{ji}-m_jB_j-Y_j
+$$
+  
+*explain variables here*  
+  
+There are three important properties of this model that will be influenced by shifts in the environment:
+1. **respiration**, which can be affected by temperature in ectotherms and by the foraging effort per biomass consumed
+2. **food intake per biomass**, which can be affected by change in the availability of prey generally or by differential changes in availability of parts of the prey population e.g. juveniles
+3. **non-predation mortality**, which can result in changing deaths contributing to detrital or carcass pools but not resulting directly from change in predator-prey interactions.
+
+##### Respiration
+  
+Yodzis & Quinn (1992) detail the different types of respirers....  
+  
+  
+##### Food intake
+  
+Composition of diet is a product of a predator's foraging behaviour, type of prey capture and handling, the availability of prey relative to the predator, and the preferences of the predator given a selection of alternative prey.  The dynamics of predators to prey is simplified in dynamic models using some form of functional response (Koen-Alonso & Yodzis, 2005).  For the purposes of assessing stable states, a multispecies Type II functional response will be adequate, particularly when it has been found to perform well in modelling the dynamics of marine food webs (Koen-Alonso & Yodzis, 2005).  The per biomass consumption of prey, i, by predator, j, is:  
+  
+$$
+F_{ij}=\frac {\hat{I}_{ij}\hat{v}_{ij}B_i}{\hat{I}_{ij}+\sum_{i'}\hat{v}_{i'j}B_{i'}}
+$$
+
+Vulnerability, $\hat{v}$ is included here in place of the term availability as it includes concepts of spatial and depth overlap (availability) combined with selectivity, as in size models, or forms of preference.  Vulnerability of prey may change when some prey age classes become more or less exposed to predation. Unpacking $\hat{v}$ gives
+
+$$
+\hat{v}_{ij}B_i=v(a0)_{ij}w(a0)_ir_i\sum_{a}{mN_a}+\sum_a{v(a)_{i,j} N_a w_a}
+$$
+*r* is the per adult reproductive success to age zero, *a0*,  *m* is a maturity ogive.  
+  Incorporating age specific vulnerabilities requires solving for age-specific mortality rates if weight at age varies greatly.  If adult weight does not vary with age and vulnerability is approximately constant for adults then the equation is easily simplified to solve for changes in either juvenile or adult vulnerabilities and the general vulnerability of the biomass is independent of the age-specific mortality rates, such that:
+
+$$
+\hat{v}_{ij}=\frac{v_{ij}(a0)w_i(a0)+ v_{ij}(a)\bar{w}_i(a)}{(r_iw_i(a0)+\bar{w}_i(a))}
+$$
+
+
+##### Non-predation mortality
+
+  
+### Estimator
+
+At equilibrium, $\frac{dB_i}{dt}$ equals 0. Thus the ratio $(B+dB/dt)/B=b$ is a measure of the departure of the estimated *B* from equilibrium because the ratio equals 1 when the vector is at equilibrium.  If we assume the ratio is log-normally distributed and the mode, the maximum probability density, is equal to 1 then this ratio can be used in a negative log-likelihood estimator to solve for the vector B.   Conceivably, individual *B*s may range according to the productivity of *B*.  In order to scale the probability density of each biomass to a realistic spread, the standard deviation of the ratio is set as the production to biomass ratio, $\frac{P_i}{\beta_i}$.  As the mode equals 1 then $\mu$ equals $\sigma^2$, which is numerically solved from the standard deviation. Thus,
+
+$$
+Pr(b;\mu,\sigma)=\frac{1}{b\sigma\sqrt{2\pi}}exp\left(-\frac{(\ln{b}-\mu)^2}{2\sigma^2} \right) \\
+\mu = \sigma^2
+$$
+
+The negative log-likelihood estimator of the vector **B** at equilibrium is
+
+$$
+L(\vec{B})=-\sum_i\ln\left( Pr(b_i;\mu_i,\sigma_i) \right)
+$$
+
+```{r echo=FALSE,eval=FALSE}
+PB<-300
+SD<-PB
+
+rootSigma<-function(a,SD){
+(SD-(a^3*(a-1))^0.5)^2 
+}
+
+res<-nlm(rootSigma,(log(SD)),SD,iterlim=1000)
+sigma<-log(res$estimate)^0.5
+mu<-sigma^2
+print(c(mu,sigma))
+
+
+x<-c(1:10000)/5000
+dLn<-dlnorm(x,sigma^2,sigma)
+print(x[dLn==max(dLn)])
+print(res)
+
+
+mu<-3
+Xbar<-exp(mu+mu/2)
+SD<-(exp(mu)-1)^0.5*Xbar
+print(c(Xbar,SD))
+x<-c(1:(3*mu*100))/100
+y<-dlnorm(x,mu,mu^0.5)
+print(plot(x,y))
+
+```
+
+?? some notes on model fitting
+General papers for model standardisation and fitting: Hill et al 2021; Pinkerton et al papers.
+also PREBAL paper by Link 2010
+
