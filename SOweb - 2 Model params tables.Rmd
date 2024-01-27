@@ -1,0 +1,231 @@
+---
+title: "SOweb - Model Parameter Tables"
+author: "Andrew Constable"
+date: "2023-12-30"
+output: pdf_document
+bibliography: ["SOweb.bib"]
+biblio-style: "ecology"
+link-citations: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(bookdown)
+```
+
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{State and environmental forcing variables in the Steady-state Ecosystem Model}}
+\begin{tabular}{l c l}
+\\
+\hline
+\\
+\textbf{Variable} & \textbf{Symbol} & \textbf{Units} \\
+\\
+\hline
+\\
+\textit{Arena} & &\\
+$\quad$Latitude & $L$ & $^{\circ}$ \\
+$\quad$Area & $A$ & $km^2$ \\
+$\quad$Depth & $Z$ & $m$ \\
+\\
+\textit{State Variables} & &\\
+$\quad$Detritus & $D$ & $tC.km^{-3}$ \\
+$\quad$Macronutrients (Silicate) & $Si$ & $mmol.m^{-3}$ \\
+$\quad$Micronutrients (dissolved Iron) & $dFe$ & $\mu{mol}.m^{-3}$ \\
+$\quad$Phytoplankton & $P$ & $tC.km^{-2}$ \\
+$\quad$Higher trophic levels & $B$ & $tC.km^{-2}$ \\
+\\
+\textit{Environmental Forcing Variables} & &\\
+$\quad$Mixed layer depth                          & $MLD$             & $m$          \\
+$\quad$Incident solar radiation at surface        & $I(0,t)$          & $W.m^{-2}$    \\
+$\quad$Sea ice thickness                          & $SIT$             & $m$           \\
+$\quad$Temperature                                & $T$               & $^{\circ}C$    \\
+\\
+\hline
+\end{tabular}
+\label{ex:SEMvars}
+\end{table}
+```
+  
+  
+
+  
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Parameters used for primary production in diatoms and other phytoplankton (modelled on haptophytes) in the NPZD model of Base Production}}
+\begin{tabular}{l c l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Units} \\
+\\
+\hline
+\\
+\textit{Light}                       &     &     \\
+$\quad$Attenuation PAR through sea ice                          & $k_{si}$  & $m^{-1}$ \\
+$\quad$Attenuation PAR through water                            & $k_w$     & $m^{-1}$ \\
+$\quad$Proportion incident radiation photosynthetically active  & $PAR$     & $-$ \\
+\\
+\textit{Growth rate} &     &   \\
+$\quad$Photosynthesis efficiency (initial slope of P-I curve) & $\alpha$    & $$ \\
+$\quad$Maximum growth rate parameters                    & $a$         & $d^{-1}$ \\
+$\quad$                                                  & $b$         & $^{\circ}C^{-1}$ \\
+$\quad$Half saturation constants for nutrient uptake     &             &  \\
+$\quad\quad$Silicate                                     & $K_{SiO_4}$ & $mmol.m^{-3}$ \\
+$\quad\quad$Dissolved Iron                               & $K_{dFe}$   & $\mu{mol}.m^{-3}$ \\
+\\
+\textit{Stoichiometry} &     &   \\
+$\quad$Algal carbon to nitrogen ratio      & $R_{c:n}$     & $mol.mol^{-1}$ \\
+$\quad$Algal chl-a to nitrogen ratio       & $R_{chla:n}$  & $g.mol^{-1}$ \\
+$\quad$Algal iron to nitrogen ratio        & $R_{fe:n}$    & $mmol.mol^{-1}$ \\
+$\quad$Algal silica to nitrogen ratio      & $R_{fe:n}$    & $mol.mol^{-1}$ \\
+$\quad$   & $$  & $$ \\
+$\quad$   & $$  & $$ \\
+\\
+\hline
+\end{tabular}
+\label{ex:BasePhytoplanktonParameters}
+\end{table}
+```
+    
+
+  
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Allocation of Parameters Part 1}}
+\begin{tabular}{l c l l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Units} & \textbf{Category}\\
+\\
+\hline
+\\
+& $a$         & $$   & \\ 
+& $A$         & $$   & \\ 
+& $\alpha$    & $$   & \\ 
+& $b$    & $$   & \\ 
+Benthic inputs& $be$    & $$   & Subscript\\ 
+Carbon mass of higher trophic level & $B$    & $$   & State variable \\ 
+& $\beta$    & $$   & \\ 
+& $c$    & $$   & \\ 
+Circumpolar Deep Water& $cdw$    & $$   & Subscript\\ 
+& $C$    & $$   & \\ 
+& $d$    & $$   & \\ 
+Detrital concentration & $D$    & $$   & State variable \\ 
+& $\delta$    & $$   & \\ 
+& $\Delta$    & $$   & \\ 
+& $e$    & $$   & \\ 
+& $E$    & $$   & \\ 
+& $\epsilon$    & $$   & \\ 
+& $\varepsilon$    & $$   & \\ 
+& $\eta$    & $$   & \\ 
+& $f$    & $$   & \\ 
+& $F$    & $$   & \\ 
+& $g$    & $$   & \\ 
+Nutrient uptake by phytoplankton & $gN$    & $$   & Primary production\\ 
+& $G$    & $$   & \\ 
+& $\gamma$    & $$   & \\ 
+& $\Gamma$    & $$   & \\ 
+& $h$    & $$   & \\ 
+& $H$    & $$   & \\ 
+& $i$    & $$   & \\ 
+& $I$    & $$   & \\ 
+& $\iota$    & $$   & \\ 
+& $j$    & $$   & \\ 
+& $J$    & $$   & \\ 
+& $k$    & $$   & \\ 
+& $K$    & $$   & \\ 
+& $\kappa$    & $$   & \\ 
+& $l$    & $$   & \\ 
+& $L$    & $$   & \\ 
+& $\lambda$    & $$   & \\ 
+& $\Lambda$    & $$   & \\ 
+& $m$    & $$   & \\ 
+Mortality rate & $M$    & $$   & \\ 
+& $\mu$    & $$   & \\ 
+& $n$    & $$   & \\ 
+Nutrient concentration & $N$    & $$   & State variable \\ 
+& $\nu$    & $$   & \\ 
+\\
+\hline
+\end{tabular}
+\label{ex:ModelParams1}
+\end{table}
+```
+  
+  
+  
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Allocation of Parameters Part 2}}
+\begin{tabular}{l c l l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Units} & \textbf{Category}\\
+\\
+\hline
+\\
+& $o$    & $$   & \\ 
+& $O$    & $$   & \\ 
+& $\omega$    & $$   & \\ 
+& $\Omega$    & $$   & \\ 
+& $p$    & $$   & \\ 
+Phytoplankton concentration (carbon) & $P$    & $$   & State variable\\ 
+Proportion incident radiation photosynthetically active& $PAR$    & $$   & \\ 
+& $\pi$    & $$   & \\ 
+& $\Pi$    & $$   & \\ 
+& $\phi$    & $$   & \\ 
+& $\Phi$    & $$   & \\ 
+& $q$    & $$   & \\ 
+& $Q$    & $$   & \\ 
+& $r$    & $$   & \\ 
+& $R$    & $$   & \\ 
+& $\rho$    & $$   & \\ 
+& $s$    & $$   & \\ 
+Sea ice & $si$    & $$   & Subscript\\ 
+Nutrient Source & $S$    & $$   & Nutrients\\ 
+& $\sigma$    & $$   & \\ 
+& $\Sigma$    & $$   & \\ 
+& $\psi$    & $$   & \\ 
+& $\Psi$    & $$   & \\ 
+& $t$    & $$   & \\ 
+Terrestrial inputs & $ti$    & $$   & Subscript\\ 
+Temperature & $T$    & $^{\circ}C$   & Environment\\ 
+& $\theta$    & $$   & \\ 
+& $\Theta$    & $$   & \\ 
+& $\vartheta$    & $$   & \\ 
+& $\tau$    & $$   & \\ 
+& $u$    & $$   & \\ 
+& $U$    & $$   & \\ 
+& $\upsilon$    & $$   & \\ 
+& $\Upsilon$    & $$   & \\ 
+& $v$    & $$   & \\ 
+& $V$    & $$   & \\ 
+& $w$    & $$   & \\ 
+& $W$    & $$   & \\ 
+& $x$    & $$   & \\ 
+& $X$    & $$   & \\ 
+& $\xi$    & $$   & \\ 
+& $\Xi$    & $$   & \\ 
+& $\chi$    & $$   & \\ 
+& $y$    & $$   & \\ 
+& $Y$    & $$   & \\ 
+& $z$    & $$   & \\ 
+& $Z$    & $$   & \\ 
+& $\zeta$    & $$   & \\ 
+\\
+\hline
+\end{tabular}
+\label{ex:ModelParams2}
+\end{table}
+```
+
+ 

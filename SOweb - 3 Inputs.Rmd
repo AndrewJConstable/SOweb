@@ -35,6 +35,8 @@ Note that the solution will be very dependent on the proportion of the system ex
   
 ### Incident radiation  
   
+Sea ice attenuation of light: 1.5 m-1 [@Perovich__RN20712_1996]  
+  
   
 ### Temperature  
   
@@ -111,7 +113,47 @@ Need to incorporate limitation of silicic acid and how this can control the abun
   
 Productivity of phytoplankton groups will govern available production in higher trophic levels.  How to partition total production between phytoplankton groups....  
   
-  
+
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Parameters used for primary production in diatoms and other phytoplankton (modelled on haptophytes) in the NPZD model of Base Production}}
+\begin{tabular}{l c c c l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Value}     &     & \textbf{Units} \\
+\\
+\hline
+\\
+\textit{Light}                       &     & \textit{Value}    &      &   \\
+$\quad$Attenuation PAR through sea ice   & $k_{si}$  & 0.00$^{ * }$     &      & $m^{-1}$ \\
+$\quad$Attenuation PAR through water     & $k_w$     & 0.04$^{ *1}$    &      & $m^{-1}$ \\
+$\quad$Proportion incident radiation photosynthetically active  & $PAR$  &0.43$^{ *1}$     &      & $-$ \\
+\\
+\textit{Growth rate} &     & \textit{Diatoms}     & \textit{Other}     &   \\
+$\quad$Photosynthesis efficiency (initial slope of P-I curve) & $\alpha$  & & control$^{ *1}$ & $$ \\
+$\quad$Maximum growth rate parameters   & $a$  & & 0.6 $^{ *1}$ & $d^{-1}$ \\
+$\quad$                                 & $b$  & & 1.066 $^{ *1}$ & $^{\circ}C^{-1}$ \\
+$\quad$Half saturation constants for nutrient uptake  &  &  &  &  \\
+$\quad\quad$Silicate                                     & $K_{SiO_4}$ & 4.0 $^{ *2}$ & 0.0 $^{ *2}$ & $mmol.m^{-3}$ \\
+$\quad\quad$Dissolved Iron                               & $K_{dFe}$   & 1.0 $^{ *2}$ & 0.1 $^{ *2}$ & $\mu{mol}.m^{-3}$ \\
+\\
+\textit{Stoichiometry} &     &      &      &   \\
+$\quad$Algal carbon to nitrogen ratio & $R_{c:n}$  & 7.0 $^{ *2}$ &  7.0 $^{ *2}$ & $mol.mol^{-1}$ \\
+$\quad$Algal chl-a to nitrogen ratio & $R_{chla:n}$  & 2.1 $^{ *2}$ &  0.84 $^{ *2}$ & $g.mol^{-1}$ \\
+$\quad$Algal iron to nitrogen ratio & $R_{fe:n}$  & 0.023 $^{ *2}$ &  0.7 $^{ *2}$ & $mmol.mol^{-1}$ \\
+$\quad$Algal silica to nitrogen ratio & $R_{fe:n}$  & 1.8 $^{ *2}$ &  0.0 $^{ *2}$ & $mol.mol^{-1}$ \\
+$\quad$   & $$  & &  $^{ *}$ & $$ \\
+$\quad$   & $$  & &  $^{ *}$ & $$ \\
+\\
+\hline
+\end{tabular}
+\label{ex:BasePhytoplanktonParameters}
+\end{table}
+```
+References: * 1 Melbourne-Thomas et al 2015; * 2 Jeffery et al 2020   
+   
    
 ### Higher Trophic Levels  
   
