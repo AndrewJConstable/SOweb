@@ -58,9 +58,9 @@ Primary production in the Southern Ocean is primarily governed (limited) by avai
 \begin{split}
 J(t,T,\vec{N},z,SIT) & =J_{max}(T).\left(1- \textrm{exp}{\left( \frac{-\alpha.I(z,t)}{J_{max}(T)} \right)}     \right).min \left( gN_{SiO_3},gN_{Fe} \right) \\
 J_{max}(T) & = ab^T \\
-I(z,t) & =I(0,t).PAR. \textrm{exp}  {\left( \frac{-(k_{si}SIT+k_wz)}{\beta} \right)}  \\
-\beta & = \sqrt{1-\left(\frac{\cos \theta}{1.33} \right)^2}\\
-gN_n & =\frac{c_nN_n}{c_nN_n+k_n} \\
+I(z,t) & =I(0,t).PAR. \textrm{exp}  {\left( \frac{-(k_{si}SIT+k_wz)}{^ID} \right)}  \\
+^ID & = \sqrt{1-\left(\frac{\cos \theta}{1.33} \right)^2}\\
+gN_n & =\frac{c_nN_n}{c_nN_n+\kappa_n} \\
 \end{split}
 \end{equation}
 
@@ -95,10 +95,18 @@ Two pools of detritus are included here: the mixed layer pool which contributes 
   
   
 $$
-dD_m = \\
-dD_d = 
+dD_m = \sum{\left[ (1-A)(MLD/Range)F_{f\rightarrow{s}}B_s \right]} - sink(D_m) - remin(dD_m)  \\
+dD^{n}_m = \sum{\left[ q^{n}_f(1-A)(MLD/Range)F_{f\rightarrow{s}}B_s \right]} - q^{n}_{D_m} \left [ sink(D_m) + remin(dD_m) + Feeding \right ]  \\
+$$
+
+$$
+dD_d = \sum{\left[ (1-A)((Range-MLD)/Range)F_{f\rightarrow{s}}B_s \right]} + sink(D_m) + sink(P) - remin(dD_d) - Export(dD_d)-Feeding\\
+dD^n_d = \sum{\left[ q^{n}_f(1-A)((Range-MLD)/Range)F_{f\rightarrow{s}}B_s \right]} + q^{n}_{D_m} sink(D_m) + q^{n}_{P} sink(P) - q^{n}_{D_d} \left [ remin(dD_d) + Export(dD_d)+Feeding \right ]\\
+
 $$
   
+with the equivalent stoichiometries of the Si and Fe components of the detritus being the respective ratios to carbon of each of the components.
+
 text here  
       
 ### Nutrients

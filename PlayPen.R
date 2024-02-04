@@ -26,3 +26,12 @@ H2<-exp(-4*H)
 plot(H,H1,type="l")
 lines(H,H2,col="green")
 
+dirOut<-"./tif/"
+fOut<-"Climatology_Si.tiff"
+t1<-rast(paste0(dirOut,fOut))
+t1<-crop(t1,ext(-180,180,-90,-60))
+t2<-project(t1,"EPSG:3976")
+
+tmp3<-project(tmp2,"EPSG:4326")
+
+

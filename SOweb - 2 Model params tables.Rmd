@@ -106,18 +106,20 @@ $\quad$   & $$  & $$ \\
 \\
 \hline
 \\
-& $a$         & $$   & \\ 
+$J_{max}$ parameter & $a$         & $d^{-1}$   & Primary Production\\ 
 & $A$         & $$   & \\ 
-& $\alpha$    & $$   & \\ 
-& $b$    & $$   & \\ 
+Initial slope of photosynthis-irradiance curve & $\alpha$    & $d^(-1)/W m^{-2}$   & Primary production \\ 
+$J_{max}$ parameter & $b$         & $d^{-1}$   & Primary Production\\ 
 Benthic inputs& $be$    & $$   & Subscript\\ 
 Carbon mass of higher trophic level & $B$    & $$   & State variable \\ 
 & $\beta$    & $$   & \\ 
 & $c$    & $$   & \\ 
+Phytoplankton competition coefficients & $^pc$    & $$   & Primary production \\ 
 Circumpolar Deep Water& $cdw$    & $$   & Subscript\\ 
 & $C$    & $$   & \\ 
 & $d$    & $$   & \\ 
 Detrital concentration & $D$    & $$   & State variable \\ 
+Realised depth adjustment for incident angle of light & $^ID$    & $$   & Primary production\\ 
 & $\delta$    & $$   & \\ 
 & $\Delta$    & $$   & \\ 
 & $e$    & $$   & \\ 
@@ -129,29 +131,14 @@ Detrital concentration & $D$    & $$   & State variable \\
 & $F$    & $$   & \\ 
 & $g$    & $$   & \\ 
 Nutrient uptake by phytoplankton & $gN$    & $$   & Primary production\\ 
-& $G$    & $$   & \\ 
+Total grazing rate by zooplankton & $G$    & $$   & \\ 
 & $\gamma$    & $$   & \\ 
 & $\Gamma$    & $$   & \\ 
 & $h$    & $$   & \\ 
 & $H$    & $$   & \\ 
 & $i$    & $$   & \\ 
-& $I$    & $$   & \\ 
+Incident solar radiation at surface        & $I$          & $W.m^{-2}$  & Environment  \\
 & $\iota$    & $$   & \\ 
-& $j$    & $$   & \\ 
-& $J$    & $$   & \\ 
-& $k$    & $$   & \\ 
-& $K$    & $$   & \\ 
-& $\kappa$    & $$   & \\ 
-& $l$    & $$   & \\ 
-& $L$    & $$   & \\ 
-& $\lambda$    & $$   & \\ 
-& $\Lambda$    & $$   & \\ 
-& $m$    & $$   & \\ 
-Mortality rate & $M$    & $$   & \\ 
-& $\mu$    & $$   & \\ 
-& $n$    & $$   & \\ 
-Nutrient concentration & $N$    & $$   & State variable \\ 
-& $\nu$    & $$   & \\ 
 \\
 \hline
 \end{tabular}
@@ -173,13 +160,31 @@ Nutrient concentration & $N$    & $$   & State variable \\
 \\
 \hline
 \\
+& $j$    & $$   & \\ 
+Phytoplankton growth rate & $J$    & $$   & Primary Production\\ 
+Phytoplankton - maximum growth rate & $J_{max}$    & $$   & Primary production\\ 
+Light attenuation & $k$    & $m^{-1}$   & Primary production\\ 
+& $K$    & $$   & \\ 
+Phytoplankton nutrient uptake - half saturation & $\kappa$    & $$   & Primary production\\ 
+& $l$    & $$   & \\ 
+& $L$    & $$   & \\ 
+& $\lambda$    & $$   & \\ 
+& $\Lambda$    & $$   & \\ 
+& $m$    & $$   & \\ 
+Mortality rate & $M$    & $$   & \\ 
+Mixed layer depth      & $MLD$             & $m$      & Environment    \\
+
+Mortality rate of phytoplankton & $\mu$    & $t^{-1}$   & Primary production\\ 
+& $n$    & $$   & \\ 
+Nutrient concentration & $N$    & $$   & State variable \\ 
+& $\nu$    & $$   & \\ 
 & $o$    & $$   & \\ 
 & $O$    & $$   & \\ 
 & $\omega$    & $$   & \\ 
 & $\Omega$    & $$   & \\ 
 & $p$    & $$   & \\ 
 Phytoplankton concentration (carbon) & $P$    & $$   & State variable\\ 
-Proportion incident radiation photosynthetically active& $PAR$    & $$   & \\ 
+Proportion incident radiation photosynthetically active& $PAR$    & $$   & Primary production\\ 
 & $\pi$    & $$   & \\ 
 & $\Pi$    & $$   & \\ 
 & $\phi$    & $$   & \\ 
@@ -192,11 +197,33 @@ Proportion incident radiation photosynthetically active& $PAR$    & $$   & \\
 & $s$    & $$   & \\ 
 Sea ice & $si$    & $$   & Subscript\\ 
 Nutrient Source & $S$    & $$   & Nutrients\\ 
+Sea ice thickness                          & $SIT$             & $m$      & Environment     \\
 & $\sigma$    & $$   & \\ 
 & $\Sigma$    & $$   & \\ 
 & $\psi$    & $$   & \\ 
 & $\Psi$    & $$   & \\ 
-& $t$    & $$   & \\ 
+\\
+\hline
+\end{tabular}
+\label{ex:ModelParams1}
+\end{table}
+```
+  
+  
+  
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Allocation of Parameters Part 3}}
+\begin{tabular}{l c l l}
+\\
+\hline
+\\
+\textbf{Parameter}                    &  \textbf{Symbol}    & \textbf{Units} & \textbf{Category}\\
+\\
+\hline
+\\
+Time & $t$    & $$   & Subscript \\ 
 Terrestrial inputs & $ti$    & $$   & Subscript\\ 
 Temperature & $T$    & $^{\circ}C$   & Environment\\ 
 & $\theta$    & $$   & \\ 
@@ -218,7 +245,7 @@ Temperature & $T$    & $^{\circ}C$   & Environment\\
 & $\chi$    & $$   & \\ 
 & $y$    & $$   & \\ 
 & $Y$    & $$   & \\ 
-& $z$    & $$   & \\ 
+Depth & $z$    & $m$   & Environment\\ 
 & $Z$    & $$   & \\ 
 & $\zeta$    & $$   & \\ 
 \\

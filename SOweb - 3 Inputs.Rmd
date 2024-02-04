@@ -11,36 +11,371 @@ link-citations: true
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+# 1. Libraries  ####
+library(RNetCDF)
+library(ggplot2)
+library(gplots)
+library(spatstat)
+library(terra)
+
 library(bookdown)
 ```
 
+```{r input_setup,echo=FALSE, eval=FALSE}
+# 1. Functions ####
+
+# convert Rasters to extend from -180 to 180 (dateline) when original is
+# extending from 0 longitude (Greenwich meridian) to 360 - 
+fConvertRasterEdgeFromGreenwhichToDateLine<-function(r){
+ExtentWest<-ext(r); ExtentWest[1]<-ExtentWest[1]+180; ExtentWest[2]<-360 
+ExtentWestNew<-ExtentWest; ExtentWestNew[c(1:2)]<-ExtentWestNew[c(1:2)]-360
+ExtentEast<-ext(r); ExtentEast[1]<-0; ExtentEast[2]<-ExtentEast[2]-180
+rE<-crop(r,ExtentEast)
+rW<-crop(r,ExtentWest)
+ext(rW)<-ExtentWestNew
+return(merge(rE,rW))
+} # end convert
+
+
+
+fPolyMeansCellWtd<-function # return statistic for spatVectors individually (AllVectors=TRUE) or combined (default)
+( p # spatVector of polygons (may be more than 1)
+  ,r # spatRaster
+  ,NArm=TRUE
+  ,AllVectors=FALSE
+  ,wtCellArea=TRUE
+){
+  if(wtCellArea){CellArea<-cellSize(r,unit="km")} else CellArea<-r^0
+  d<-extract(r,p)
+  w<-extract(CellArea,p)
+  if(NArm) x<-!is.na(d[,2]) else x<-TRUE
+  if(AllVectors){
+    l<-unique(d[,1])
+    res<-lapply(l,function(i,d,w,x){
+      v<-(x & d[,1]==i)
+      weighted.mean(d[v,2],w[v,2])
+    },d,w,x)
+    return(data.frame(Polygon = l,Name = values(p),Value = unlist(res)))
+  } else return (data.frame(Polygon = 1,Name = paste(c("a","b","c"),collapse ="_"),Value = weighted.mean(d[x,2],w[x,2])))
+}
+
+
+fPolyMediansCellWtd<-function # return statistic for spatVectors individually (AllVectors=TRUE) or combined (default)
+                 ( p # spatVector of polygons (may be more than 1)
+                  ,r # spatRaster
+                  ,NArm=TRUE
+                  ,AllVectors=FALSE
+                  ,wtCellArea=TRUE
+                  ){
+  if(wtCellArea){CellArea<-cellSize(r,unit="km")} else CellArea<-r^0
+  d<-extract(r,p)
+  w<-extract(CellArea,p)
+  
+  if(NArm) x<-!is.na(d[,2]) else x<-TRUE
+  if(AllVectors){
+    l<-unique(d[,1])
+    res<-lapply(l,function(i,d,w,x){
+      v<-(x & d[,1]==i)
+      if (sum(v)==0) return(NA) else return(weighted.median(d[v,2],w[v,2]))
+    },d,w,x)
+    return(data.frame(Polygon = l,Name = values(p),Value = unlist(res)))
+  } else {
+    if (sum(x)==0) res<-NA else res<-weighted.median(d[x,2],w[x,2])
+    return (data.frame(Polygon = 1,Name = paste(c("a","b","c"),collapse ="_"),Value = res))
+    }
+  } # end function
+
+
+
+# 2. Input data #### 
+
+MEASOareas<-"/Users/acon/Desktop/_w/_d/Shapefiles/MEASO\ polygons/MEASO_polygons.shp"
+vMEASO <- vect(MEASOareas)
+lMEASO<-as.lines(sMEASO)
+plot(vMEASO)
+
+
+```
+
+
 # Inputs  
   
-
+Steps:
+1. Generate relevant Southern Ocean geotiff files for all georeferenced data.  These provide the base from which different metrics may be generated from the same dataset.  
+2. Metrics are summarised for a polygon based on the georeferenced data.  
+  
+Where time series are generated, time-stamped geotiff files are used for estimating metrics and values interpolated for time-steps between them.  '     
+  
   
 ## Nutrients  
   
 Nutrients bound the estimation of biomasses of the different biological nodes.
-
+  
 Nitrogen, phosphorous and carbon are not limiting in the Southern Ocean.  Only pools of dissolved silicate (silicic acid) and dissolved iron are included in the steady-state model as they are the limiting nutrients for phytoplankton.  In both cases, a climatology of winter concentrations is used to initialise the deep water concentrations below the mixed layer.  From that time, changes in the mixed layer and deep water pools are a product of exchange between the pools, primary production, recycling and remineralisation.   
     
-Winter concentrations for the recently published dissolved iron climatology [@Huang__2022_RN20701] and the silicic acid climatology [@Boyer__2018_RN20704] were respectively obtained from https://zenodo.org/records/6994318 and https://www.ncei.noaa.gov/access/world-ocean-atlas-2018/bin/woa18oxnu.pl.  
-   
+### Slicic Acid. 
   
+The climatology for silicic acid ($\mu{mol.kg^{-1}}$ was obtained from the World Ocean Atlas 2018 [@Boyer__2018_RN20704] on a 1-degree grid (https://www.ncei.noaa.gov/access/world-ocean-atlas-2018/).  The objectively analyzed climatologies are used.  These are the objectively interpolated mean fields for oceanographic variables at standard depth levels for the World Ocean.  The mean concentration over October through December is used as distribution of silicate. 
+
+```{r echo=FALSE,eval=FALSE}   
+# World Ocean Atlas 2018 File naming conventions: [V][TT][FF][GG].[EXT]
+# where:
+# [V] - variable
+# [TT] - time period
+# [FF] - field type
+# [GG] - grid (01- 1°, 04 - 1/4° 10 - 1/10°)
+# [EXT] - file extention
+# Note: '.dat' - ASCII; '.csv' - comma separated value; '.dbf', '.shp', '.shx' - ArcGIS shape files; '.nc' - netCDF files
+
+dirData<-"/Users/acon/Desktop/_w/_d/Ocean/Silicate/"
+dirOut<-"./tif/"
+fOut<-"Climatology_Si.tiff"
+fData<-paste0(dirData,"woa18_all_i",sprintf("%02d",seq(1,12,1)),"_01.nc")
+
+# for each month, calculate mean concentration in top 300 m (top 29 layers) as depth-weighted mean
+
+mths<-c(10:12)
+l<-matrix(c(1:28),ncol=1) # layers for top 300 m
+
+dz<-c(rep(5,20),rep(25,8)) # change in depth for each layer - e.g. layer 0m has 5m before next layer at 5m etc.  thus, does not include layer for 300.
+dzSum<-sum(dz)
+
+ClimSi<-mean(rast(sapply(fData[mths],function(r){
+          dIn<-rast(r,"i_an")
+          return(sum(rast(sapply(l,function(l,R,dz){R[[l]]*dz[l]},dIn,dz)))/dzSum)
+          })))
+writeRaster(ClimSi,filename=paste(dirOut,fOut,sep=""))
+plot(ClimSi)
+
+# generate means for each MEASO area
+
+Si_means<-fPolyMeansCellWtd(project(sMEASO,ClimSi),ClimSi,AllVectors=TRUE,wtCellArea=TRUE)
+save(Si_means,file="./IO In/Si_means.Rdata")
+
+```
+
+   
+   
+### Iron
+  
+Winter concentrations for the recently published dissolved iron climatology [@Huang__2022_RN20701], https://zenodo.org/records/6994318 
+
+
+```{r echo=FALSE,eval=FALSE}   
+#  double dFe_RF [Longitude, Latitude, Depth, Month]   
+#            units: nmol L-1
+#            FillValue: NaN
+#            long_name: Monthly dissolved iron simulated from random forest algorithm
+#            coordinates: [Longitude, Latitude, Depth, Month]
+#     4 dimensions:
+#
+#        Longitude  Size:357
+#            units: degree_north
+#            long_name: Longitude
+#
+#        Latitude  Size:147
+#            units: degree_east
+#            long_name: Latitude
+#
+#        Depth  Size:31
+#            units: meter
+#            long_name: Depth
+#
+#        Month  Size:13
+#           Units: "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","De#  c",  
+#                      "Annuual mean"            
+#           long_name: Month
+#
+# 4 global attributes:
+#        Authors: Yibin Huang & Nicolas Cassar
+#        Corresponding author: nicolas.cassar@duke.edu
+#        Request_for_citation: If you use these data in publications or presentations, #please cite:
+#        “Huang, Y., Tagliabue, A., & Cassar, N. (2022). Data-driven modeling of dissolved iron in
+#        the global ocean. Frontiers in Marine Science”.
+
+dirData<-"/Users/acon/Desktop/_w/_d/Ocean/Iron/"
+dirOut<-"./tif/"
+fOut<-"Climatology_Fe.tiff"
+
+fData<-"Monthly_dFe_V2.nc"
+
+rFe<-rast(paste(dirData,fData,sep=""))
+
+# for each month, calculate mean concentration in top 300 m (top 29 layers) as depth-weighted mean
+
+mths<-c(10:12) # month 13 is the average for the year
+l<-matrix(c(1:18),ncol=1) # layers for top 300 m
+Z<-c( 11.0
+     ,25.00021076202393
+     ,35.00164031982422
+     ,45.00521087646484
+     ,55.01295471191406
+     ,65.02882766723634
+     ,75.06052398681639
+     ,85.12305450439452
+     ,95.24561309814453
+     ,105.4850616455078
+     ,115.9520111083985
+     ,126.8614730834961
+     ,138.6305541992187
+     ,152.0652770996094
+     ,168.7119445800782
+     ,191.4947052001952
+     ,225.7935028076171
+     ,281.0021057128906
+     ,371.9920349121094
+     ,518.4190368652341
+     ,738.7690429687499
+     ,1040.19091796875
+     ,1413.504516601562
+     ,1839.507568359375
+     ,2298.977294921875
+     ,2777.8115234375
+     ,3267.250732421875
+     ,3762.322998046872
+     ,4260.339355468752
+     ,4759.881347656251
+     ,5260.210449218748)
+nZ<-length(Z)
+dZ<-Z*0
+dZ[1]<-11
+for(i in 2:nZ) dZ[i]<-(Z[i]-Z[(i-1)])-dZ[(i-1)]
+dZ<-dZ*2
+
+
+dzSum<-sum(dz[l]) # sum of the depths included in the weighting
+
+ClimFe<-mean(rast(
+                  sapply(mths,function(m,rFe,dZ,dzSum,l){
+                          return(sum(rast(sapply(l,function(l,m,R,dz){R[[(m-1)*nZ+l]]*dz[l]},m,rFe,dZ)))/dzSum)
+                          },rFe,dZ,dzSum,l)
+                  ),na.rm=TRUE)
+writeRaster(ClimFe,filename=paste(dirOut,fOut,sep=""))
+print(plot(ClimFe))
+
+# generate means for each MEASO area
+
+ClimFe<-rast("./tif/Climatology_Fe.tiff")
+Fe_means<-fPolyMeansCellWtd(project(sMEASO,ClimFe),ClimFe,AllVectors=TRUE,wtCellArea=TRUE)
+save(Fe_means,file="./IO In/Fe_means.Rdata")
+
+
+```            
+            
 ## Environment  
   
   
 Note that the solution will be very dependent on the proportion of the system expected to be exported.  You could configure fixed biomasses to anchor the model and estimate export flux or fix export flux and estimate biomasses.  They cannnot be estimated together!
   
   
-### Incident radiation  
+### Surface Insolation.  
   
+Photosynthetically active radiation (PAR) is available as mean Einsteins.$m^{-2}d^{-1}$ (https://oceancolor.gsfc.nasa.gov/resources/atbd/par/).  This is converted to Watts.$m^{-2}d^{-1}$.
+
 Sea ice attenuation of light: 1.5 m-1 [@Perovich__RN20712_1996]  
   
   
+Surface Solar Insolation (SSI) is available as monthly means from https://data.giss.nasa.gov/seawifs/    
+Visualisation products of solar insolation are available as daily, 8-day, or monthly means as Watts.$m^{-2}d^{-1}$.  Importantly, this data is for the whole Earth rather than stopping at the sea ice edge.
+The visualisation products are available using the following link to pages for each year: https://neo.gsfc.nasa.gov/view.php?datasetId=CERES_INSOL_M&year=2012
+
+
+Available from July 2006 to the present.  Monthly data were downloaded by hand. Missing monthly files were:
+
+2012-10-01
+
+Note that very high values were recorded in December (greater than 10000).  These were deleted by converting cells to NA
+
+Mike Sumner suggests that they could be accessed using latest GDAL package as an external file e.g. "/vsicurl/https://neo.gsfc.nasa.gov/servlet/RenderData?si=1536111&cs=rgb&format=FLOAT.TIFF&width=1440&height=720"
+Note that this is rendering monthly data where the month is coded as si=1536111.  Need to work out how to decode the numbering for dates with format 2011-11-01.
+
+
+
+```{r echo=FALSE,eval=FALSE}   
+fPath<-"/Users/acon/Desktop/_w/_d/Ocean/Insolation/"
+fTiff<-list.files(fPath)
+dirOut<-"./tif/"
+fOut<-"Insolation.tiff"
+
+# files range from 200607 to 202301
+# choose start and end file for averaging over years for each month
+fFirst<-"CERES_INSOL_M_2010-07-01_rgb_1440x720.FLOAT.TIFF"  # year is substring(f,15,18) month is substring(f,20,21)
+fLast <-"CERES_INSOL_M_2020-06-01_rgb_1440x720.FLOAT.TIFF"
+
+# vector of filenames to use
+fTiff<-fTiff[seq(which(fTiff==fFirst),which(fTiff==fLast),1)]
+
+# note missing: 2012-10-01, 2013-08-01
+
+Mths<-sprintf("%02d",seq(1,12,1))
+res<-sapply(Mths,function(m,f){
+            res<-f[substring(f,20,21)%in%m]
+            res1<-rast(paste0(fPath,res))
+            values(res1)[values(res1)>1000]<-NA  # excluding very high values which are rare blips
+            return(mean(res1,na.rm=TRUE))
+            },fTiff)
+Insol<-rast(res)
+writeRaster(Insol,filename=paste(dirOut,fOut,sep=""))
+rm(res)
+
+# generate means for each MEASO area
+
+ClimInsol<-rast("./tif/Insolation.tiff")
+Insol_means<-do.call(rbind,lapply(seq(1,length(names(ClimInsol))),function(m,CI){
+  fPolyMeansCellWtd(project(sMEASO,CI[[m]]),CI[[m]],AllVectors=TRUE,wtCellArea=TRUE)[,3]
+},ClimInsol))
+dimnames(Insol_means)<-list(paste0("M",sprintf("%02d",c(1:12))),unlist(values(sMEASO)))
+save(Insol_means,file="./IO In/Insol_means.Rdata")
+
+```            
+  
+  
+### Mixed Layer Depth  
+  
+Use BRAN data
+
+single tif saved with all months as layers
+note need to convert edge from greenwich meridian to dateline meridian
+
+
+
+ 
+
 ### Temperature  
   
+BRAN data for current
+
+
+```{r Temp, echo=FALSE,eval=FALSE}   
+# BRAN data processed on ace-ecostats
+# generated monthly raster brick of mean temperature in MLD and below MLD down to 1000m
+# tif files copied into temperature directory
+
+fPath<-"./tif/Temp/"
+fNames<-list.files(fPath)
+# range of files: 01 to 12 (months)
+nMonths<-12
+fNames<-paste0("rTemp_",sprintf("%02d",seq(1,nMonths,1)),".tif")
+
+Temp_MLD_means<-do.call(rbind,lapply(fNames,function(f){
+  # from BRAN requires converting edge from Greenwich meridian to Dateline
+  r<-fConvertRasterEdgeFromGreenwhichToDateLine(subset(rast(paste0(fPath,f)),"Temp_MLD"))
+  fPolyMeansCellWtd(project(sMEASO,r),r,AllVectors=TRUE,wtCellArea=TRUE)[,3]
+}))
+dimnames(Temp_MLD_means)<-list(paste0("M",sprintf("%02d",c(1:nMonths))),unlist(values(sMEASO)))
+save(Temp_MLD_means,file="./IO In/Temp_MLD_means.Rdata")
   
+Temp_Deep_means<-do.call(rbind,lapply(fNames,function(f){
+  # from BRAN requires converting edge from Greenwich meridian to Dateline
+  r<-fConvertRasterEdgeFromGreenwhichToDateLine(subset(rast(paste0(fPath,f)),"Temp_Deep"))
+  fPolyMeansCellWtd(project(sMEASO,r),r,AllVectors=TRUE,wtCellArea=TRUE)[,3]
+}))
+dimnames(Temp_Deep_means)<-list(paste0("M",sprintf("%02d",c(1:nMonths))),unlist(values(sMEASO)))
+save(Temp_Deep_means,file="./IO In/Temp_Deep_means.Rdata")
+  
+```            
+  
+
 ### Sea ice
 
 Notes on sea ice
@@ -55,11 +390,69 @@ abrupt change in complex systems (Scheffer etal 2009)
 Importance of subsurface ocean warming (Meehle)
   
   
-### Mixed Layer Depth  
   
   
- 
+  
+  
+#### Sea Ice Thickness
 
+Fons et al (2023) published gridded monthly estimates of Antarctic sea ice physical properties derived from CryoSat-2 Baseline-D SAR and SARIn data spanning July 2010 through August 2021. Data are generated using the CryoSat-2 Waveform-Fitting method for Antarctic sea ice (CS2WFA). Files include:
+  
+  CS2WFA_25km_YYYYMM.nc: Monthly mean values gridded on the NSIDC 25km polar stereographic grid. Each file represents 1 month of data (134 files total).
+Each monthly file contains:
+  
+latitude, longitude, and time (in months since January 2000)
+Grids of retrieved snow depth, snow freeboard, ice freeboard, and sea ice concentration
+Grids of seasonal snow, sea ice, and seawater density
+Grids of sea ice thickness and estimated thickness uncertainty, as well as thickness estimated using a 70% threshold retracker and using a zero-ice-freeboard assumption.
+
+
+
+Note that the projection of the data is the NSIDC Polar Stereographic at 25km resolution.  On the NSIDC web site (https://nsidc.org/data/user-resources/help-center/guide-nsidcs-polar-stereographic-projection), this could have two EPSG codes depending on which projection method - based on WGS1984 (epsg 3976) or based on Hughes 1980 Ellipsoid (epsg 3412)
+
+```{r SIT, echo=FALSE,eval=FALSE}   
+fPath<-"/Users/acon/Desktop/_w/_d/Ocean/SeaIce/Fons et al 2023/"
+fNames<-list.files(fPath)
+dirOut<-"./tif/Sea ice/"
+fOut<-"SeaIceThickness.tiff"
+
+# range of files: 201007 to 202108
+# choose start and end file for averaging over years for each month
+fFirst<-"CS2WFA_25km_201007.nc"  # year is substring(f,13,16) month is substring(f,17,18)
+fLast <-"CS2WFA_25km_202006.nc"
+
+# vector of filenames to use
+fNames<-fNames[seq(which(fNames==fFirst),which(fNames==fLast),1)]
+
+Mths<-sprintf("%02d",seq(1,12,1))
+res<-sapply(Mths,function(m,f){
+            res<-f[substring(f,17,18)%in%m]
+            res1<-rast(sapply(res,function(fN){ 
+                   r <- flip(rast(paste0(fPath,fN)), "vertical")
+                   set.ext(r, ext(-3950000, 3950000, -3950000, 4350000))
+                   set.crs(r, "EPSG:3031")
+                   targetgrid <- rast(ext(-180, 180, -90, -40), res = c(0.25, 0.25), crs = "EPSG:4326")
+                   rRes<-project(subset(r,"sea_ice_thickness"), targetgrid, by_util = TRUE)
+                   values(rRes)[is.nan(values(rRes))]<-NA
+                   rRes
+                   }))
+            return(mean(res1,na.rm=TRUE))
+            },fNames)
+SIthickness<-rast(res)
+writeRaster(SIthickness,filename=paste(dirOut,fOut,sep=""))
+
+# generate means for each MEASO area
+
+SIthickness<-rast("./tif/SeaIceThickness.tiff")
+SIT_medians<-do.call(rbind,lapply(seq(1,length(names(SIthickness))),function(m,SIT){
+  fPolyMediansCellWtd(project(sMEASO,SIT[[m]]),SIT[[m]],AllVectors=TRUE,wtCellArea=TRUE)[,3]
+},SIthickness))
+dimnames(SIT_medians)<-list(paste0("M",sprintf("%02d",c(1:12))),unlist(values(sMEASO)))
+save(SIT_medians,file="./IO In/SIT_medians.Rdata")
+
+```            
+  
+  
 ## Biota  
   
 The main requirement is to estimate nutrient loss from each biomass pool as a rate relative to total biomass consumption (total mass, not nutrient mass) per unit pool biomass (total mass, not nutrient mass). 
