@@ -2,7 +2,11 @@
 title: "SOweb - Inputs"
 author: "Andrew Constable"
 date: "2023-12-30"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 4
+papersize: a4
 bibliography: ["SOweb.bib"]
 biblio-style: "ecology"
 link-citations: true
@@ -21,7 +25,7 @@ library(terra)
 library(bookdown)
 ```
 
-```{r input_setup,echo=FALSE, eval=FALSE}
+```{r input_setup,echo=TRUE, eval=FALSE}
 # 1. Functions ####
 
 # convert Rasters to extend from -180 to 180 (dateline) when original is
@@ -117,7 +121,7 @@ Nitrogen, phosphorous and carbon are not limiting in the Southern Ocean.  Only p
   
 The climatology for silicic acid ($\mu{mol.kg^{-1}}$ was obtained from the World Ocean Atlas 2018 [@Boyer__2018_RN20704] on a 1-degree grid (https://www.ncei.noaa.gov/access/world-ocean-atlas-2018/).  The objectively analyzed climatologies are used.  These are the objectively interpolated mean fields for oceanographic variables at standard depth levels for the World Ocean.  The mean concentration over October through December is used as distribution of silicate. 
 
-```{r echo=FALSE,eval=FALSE}   
+```{r Si, echo=TRUE,eval=FALSE}   
 # World Ocean Atlas 2018 File naming conventions: [V][TT][FF][GG].[EXT]
 # where:
 # [V] - variable
@@ -161,7 +165,7 @@ save(Si_means,file="./IO In/Si_means.Rdata")
 Winter concentrations for the recently published dissolved iron climatology [@Huang__2022_RN20701], https://zenodo.org/records/6994318 
 
 
-```{r echo=FALSE,eval=FALSE}   
+```{r Fe, echo=TRUE,eval=FALSE}   
 #  double dFe_RF [Longitude, Latitude, Depth, Month]   
 #            units: nmol L-1
 #            FillValue: NaN
@@ -291,7 +295,7 @@ Note that this is rendering monthly data where the month is coded as si=1536111.
 
 
 
-```{r echo=FALSE,eval=FALSE}   
+```{r Insol, echo=TRUE,eval=FALSE}   
 fPath<-"/Users/acon/Desktop/_w/_d/Ocean/Insolation/"
 fTiff<-list.files(fPath)
 dirOut<-"./tif/"
@@ -337,6 +341,21 @@ Use BRAN data
 single tif saved with all months as layers
 note need to convert edge from greenwich meridian to dateline meridian
 
+  
+```{r MLD, echo=TRUE,eval=FALSE}   
+fName<-"./tif/Ocean/rMLD.tif"
+nMonths<-12
+refMonths<-sprintf("%02d",seq(1,nMonths,1))
+rMLD<-rast(fName)
+rMLD<-fConvertRasterEdgeFromGreenwhichToDateLine(rMLD) # from BRAN requires converting edge from Greenwich meridian to Dateline
+
+MLD_means<-do.call(rbind,lapply(refMonths,function(f,r){
+  fPolyMeansCellWtd(project(sMEASO,r),subset(r,f),AllVectors=TRUE,wtCellArea=TRUE)[,3]
+},rMLD))
+dimnames(MLD_means)<-list(paste0("M",refMonths),unlist(values(sMEASO)))
+save(MLD_means,file="./IO In/MLD_means.Rdata")
+  
+```            
 
 
  
@@ -346,7 +365,7 @@ note need to convert edge from greenwich meridian to dateline meridian
 BRAN data for current
 
 
-```{r Temp, echo=FALSE,eval=FALSE}   
+```{r Temp, echo=TRUE,eval=FALSE}   
 # BRAN data processed on ace-ecostats
 # generated monthly raster brick of mean temperature in MLD and below MLD down to 1000m
 # tif files copied into temperature directory
@@ -390,8 +409,23 @@ abrupt change in complex systems (Scheffer etal 2009)
 Importance of subsurface ocean warming (Meehle)
   
   
+```{r SIconc, echo=TRUE,eval=FALSE}   
+# raadtools used to extract satellite sea ice concentration
+# generated raster brick of mean sea ice concentration each month
+
+fName<-"./tif/Sea ice/rCICE.tif"
+nMonths<-12
+refMonths<-sprintf("%02d",seq(1,nMonths,1))
+rCICE<-rast(fName)
+
+CICE_means<-do.call(rbind,lapply(refMonths,function(f,r){
+  # from BRAN requires converting edge from Greenwich meridian to Dateline
+  fPolyMeansCellWtd(project(sMEASO,r),subset(r,f),AllVectors=TRUE,wtCellArea=TRUE)[,3]
+},rCICE))
+dimnames(CICE_means)<-list(paste0("M",refMonths),unlist(values(sMEASO)))
+save(CICE_means,file="./IO In/CICE_means.Rdata")
   
-  
+```            
   
   
 #### Sea Ice Thickness
@@ -410,7 +444,7 @@ Grids of sea ice thickness and estimated thickness uncertainty, as well as thick
 
 Note that the projection of the data is the NSIDC Polar Stereographic at 25km resolution.  On the NSIDC web site (https://nsidc.org/data/user-resources/help-center/guide-nsidcs-polar-stereographic-projection), this could have two EPSG codes depending on which projection method - based on WGS1984 (epsg 3976) or based on Hughes 1980 Ellipsoid (epsg 3412)
 
-```{r SIT, echo=FALSE,eval=FALSE}   
+```{r SIT, echo=TRUE,eval=FALSE}   
 fPath<-"/Users/acon/Desktop/_w/_d/Ocean/SeaIce/Fons et al 2023/"
 fNames<-list.files(fPath)
 dirOut<-"./tif/Sea ice/"
@@ -616,7 +650,7 @@ $$
 A_{i,j}=\frac{(O_s-O_d)^2}{(D_{i,s}-D_{i,d})(D_{j,s}-D_{j,d})}
 $$
 
-```{r,echo=FALSE,eval=FALSE}
+```{r,echo=TRUE,eval=FALSE}
 
 calcAvailabilityMatrixFromDepthRange<-function(D){ # two column matrix - rows = nodes, cols = top,bottom depths in range
 sapply(seq(1:nrow(D)),function(p,D){
@@ -667,7 +701,7 @@ SS=\sum_i \left( 1 - \frac{\sum_{j} Q_{i,j}}
                           {\sum_{j}Q'_{i,j}}\right)^2
 \end{equation}
 
-```{r foraging, echo=FALSE, eval=FALSE}
+```{r foraging, echo=TRUE, eval=FALSE}
 # determine max ingestion rates using numerical methods
 
 # Functions  ###########
@@ -778,7 +812,7 @@ $$
 M0_j=(1-EE_j)\left(\frac{P_j}{B_j}\right)+Waste ?check
 $$
 
-```{r echo=FALSE,eval=FALSE}
+```{r echo=TRUE,eval=FALSE}
 M0<-(1-eMod$params[,"EE"])*eMod$params[,"P.B"]+Waste
 ```
 
@@ -793,7 +827,7 @@ $$
 R_j<-\left(\frac{Q_j}{B_j}\right)-\left(\frac{P_j}{B_j}\right)
 $$
 
-```{r echo=FALSE,eval=FALSE}
+```{r echo=TRUE,eval=FALSE}
 R<-(eMod$params[,"Q.B"]-eMod$params[,"P.B"])
 
 ```
@@ -806,7 +840,7 @@ difficulty with Hill et al aggregations is that there is no differentiation betw
 
 
 
-```{r echo=FALSE, eval=FALSE}
+```{r echo=TRUE, eval=FALSE}
 
 root<-"/Users/andreworca/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
 

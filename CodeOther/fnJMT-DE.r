@@ -1,5 +1,13 @@
 ## RHS of NPZD system
-F <- function(k,x,u,a,mld,no3e,w,J) {
+F <- function(k # vector element to read
+             ,x # X vector of NPZD
+             ,u # mortality rate
+             ,a # parameters
+             ,mld # mixed layer depth for time step
+             ,no3e # nitrate concentration for time step
+             ,w # change in mixed layer depth for time step
+             ,J # phytoplankton growth rate
+             ) {
 
   ## Grazing
   G <- (a[9]*a[10]*x[2]^2)/(a[9] + a[10]*x[2]^2)

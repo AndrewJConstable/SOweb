@@ -1,10 +1,24 @@
 ## Integrate NPZD system by Euler stepping
-NPZD.sim <- function(a,x1,u,day,sra,mld,no3e,w,sst,lat,dt) {
-  n <- length(u)+1
+# comments by Andrew Constable
+
+NPZD.sim <- function(
+    a       # parameters for functions
+   ,x1      # vector of NPZD initial values c(N=18,P=0.1,Z=0.4,D=0.1)
+   ,u       # mortality rates (vector for each day)
+   ,day     # Julian day of the year
+   ,sra    # solar radiation at surface (daily forcing variable)
+   ,mld    # mixed layer depth (daily forcing variable)
+   ,no3e   # vector of nitrate concentrations for deep layer
+   ,w      # change in mixed layer depth during time step (last element =0)
+   ,sst    # vector of SST
+   ,lat    # latitude of projection (for incident light angle)
+   ,dt     # magnitude of time step (related to each element of vectors)
+      ) { # start function
+  n <- length(u)+1    # time steps
   X <- matrix(0,4,n)
 
-  Jmax <- a[3]*a[4]^sst
-  J <- EvansParslow(day,sra,mld,u,a[1],a[2],Jmax,-lat)
+  Jmax <- a[3]*a[4]^sst # vector of Jmax
+  J <- EvansParslow(day,sra,mld,u,a[1],a[2],Jmax,-lat)  # vector of J
 
   X[,1] <- x1
   for(k in 2:n) {

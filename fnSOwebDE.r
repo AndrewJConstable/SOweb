@@ -1,19 +1,34 @@
+fPathIn<-"./IO in/"
+fPathOut<-"./IO out/"
+load(paste0(fPathIn,"Fe_means.Rdata")) # df Iron concentration rows(MEASO area) cols(n, name, value)
+load(paste0(fPathIn,"Si_means.Rdata")) # df Silicate concentration rows(MEASO area) cols(n, name, value)
+load(paste0(fPathIn,"Insol_means.Rdata"))  # matrix Insolation W.m-2.d-1 rows(months) cols(MEASO area)
+load(paste0(fPathIn,"MLD_means.Rdata"))  # matrix Mixed Layer Depth m rows(months) cols(MEASO area)
+load(paste0(fPathIn,"CICE_means.Rdata"))  # matrix Sea ice percent cover % rows(months) cols(MEASO area) 
+load(paste0(fPathIn,"Temp_MLD_means.Rdata"))  # matrix Temperature mixed layer oC rows(months) cols(MEASO area) 
+load(paste0(fPathIn,"Temp_Deep_means.Rdata"))  # matrix Temperature MLD to 1000m oC rows(months) cols(MEASO area) 
 
-TempMLD_mth<-NULL  # Temperature - average over mixed layer depth
-Temp1000_mth<-NULL # Temperature - average over 1000m
-MLD_mth<-NULL # mixed layer depth 
-SIT_mth<-NULL # sea ice thickness
-SIC_mth<-NULL # sea ice cover
-
-Insol_mth<-NULL # Insolation at the surface
-
-Nsi_0<-NULL # Nutrient silicic acid concentration average in winter and below mixed layer
-Nfe_0<-NULL # Nutrient dissolved iron concentration average in winter and below mixed layer
+TargetArea<-"AOA"
+nFe_0<-Fe_means[Fe_means[,"MEASO_area"]==TargetArea,3]
+nSi_0<-Si_means[Si_means[,"MEASO_area"]==TargetArea,3]
+eInsol<-Insol_means[,TargetArea]
+eMLD<-MLD_means[,TargetArea]
+eCICE<-CICE_means[,TargetArea]
+eTemp_MLD<-Temp_MLD_means[,TargetArea]
+eTemp_Deep<-Temp_Deep_means[,TargetArea]
 
 
-## RHS of NPZD system
-fnSOwebDE <- function(k,x,u,a,mld,no3e,w,J) {
 
+## RHS of NPZD system (from Melbourne-Thomas et al 2015)
+
+fnSOwebDE <- function(k # vector element to read  (not used by JMT)
+              ,x # X vector - NPZD
+              ,u # mortality rate
+              ,a # parameters
+              ,mld # mixed layer depth for time step
+              ,no3e # nitrate concentration for time step
+              ,w # change in mixed layer depth for time step
+              ,J # phytoplankton growth rate
   ## Grazing
   G <- (a[9]*a[10]*x[2]^2)/(a[9] + a[10]*x[2]^2)
   wp <- max(w,0)

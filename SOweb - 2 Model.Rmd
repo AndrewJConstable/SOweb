@@ -2,7 +2,11 @@
 title: "SOweb - Model"
 author: "Andrew Constable"
 date: "2023-12-30"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 4
+papersize: a4
 bibliography: ["SOweb.bib"]
 biblio-style: "ecology"
 link-citations: true
@@ -101,8 +105,7 @@ $$
 
 $$
 dD_d = \sum{\left[ (1-A)((Range-MLD)/Range)F_{f\rightarrow{s}}B_s \right]} + sink(D_m) + sink(P) - remin(dD_d) - Export(dD_d)-Feeding\\
-dD^n_d = \sum{\left[ q^{n}_f(1-A)((Range-MLD)/Range)F_{f\rightarrow{s}}B_s \right]} + q^{n}_{D_m} sink(D_m) + q^{n}_{P} sink(P) - q^{n}_{D_d} \left [ remin(dD_d) + Export(dD_d)+Feeding \right ]\\
-
+dD^n_d = \sum{\left[ q^{n}_f(1-A)((Range-MLD)/Range)F_{f\rightarrow{s}}B_s \right]} + q^{n}_{D_m} sink(D_m) + q^{n}_{P} sink(P) - q^{n}_{D_d} \left [ remin(dD_d) + Export(dD_d)+Feeding \right ]
 $$
   
 with the equivalent stoichiometries of the Si and Fe components of the detritus being the respective ratios to carbon of each of the components.
