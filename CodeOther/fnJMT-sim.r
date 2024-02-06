@@ -4,7 +4,7 @@
 NPZD.sim <- function(
     a       # parameters for functions
    ,x1      # vector of NPZD initial values c(N=18,P=0.1,Z=0.4,D=0.1)
-   ,u       # mortality rates (vector for each day)
+   ,u       # photosynthetic efficiency
    ,day     # Julian day of the year
    ,sra    # solar radiation at surface (daily forcing variable)
    ,mld    # mixed layer depth (daily forcing variable)
@@ -19,7 +19,7 @@ NPZD.sim <- function(
 
   Jmax <- a[3]*a[4]^sst # vector of Jmax
   J <- EvansParslow(day,sra,mld,u,a[1],a[2],Jmax,-lat)  # vector of J
-
+  
   X[,1] <- x1
   for(k in 2:n) { # 2:n is based on the matrix of state variables
     JA <- Jmax[k-1]*X[1,k-1]/(a[5]+X[1,k-1])

@@ -56,14 +56,22 @@ Biogeochemistry models developed for coupling multiple phytoplankton groups to E
       
 ### Primary production  
   
-Primary production in the Southern Ocean is primarily governed (limited) by available light, temperature, and limitation by iron and, in the case of diatoms, silicate (Boyd 2019; Henley 2020).  These factors vary in their influence between species (Petrou et al 2016; Boyd 2019) and with latitude and season (Petrou et al 2016; Deppeler & Davidson 2017).  Seasonal variation in mixed layer depth and the presence of sea ice affects the total radiation available to phytoplankton.  Moreover, inter-specific differences in stoichiometry and cell size mean that production by different species results in differential draw-down rates of the nutrient pools; increased surface to volume ratio of smaller cells increases nutrient uptake rate.  Unlike higher trophic levels, primary production and the nutrient pools need to incorporate seasonal changes in these rates, including changes in the mortality rate from consumption, in order to accurately estimate total annual primary production of a taxon.  While growth rates of individual taxa are not expected to be independently affected by different factors (Boyd etc), there are no clear multivariate models for growth rates.  Hence, classical models for growth rates are adopted here based on the model of Oke et al \citeyear[@Oke__2013_RN14929] but with the effects of light, temperature and nutrient limitation jointly applied [@Hauck__2013_RN20697; @Dutkiewicz__2020_RN20707] and the incident angle of light impacting the attenuation of light with water depth [@Melbourne-Thomas__2015_RN20577] and sea ice thickness [@Perovich__RN20712_1996].  The rate of uptake of  nutrients is determined by a Holling Type II and the uptake by the most limiting nutrient (either iron or silicate) determines the rate of growth.  Thus, growth rates are determined as  
+Primary production in the Southern Ocean is primarily governed by temperature in the mixed layer, where primary production occurs, and the available light and nutrients.  In the Southern Ocean, the macronutrients, phosphorous and nitrogen, are in abundance.  Instead, the region's production is limited by the supply of iron and, in the case of diatoms, silicate (Boyd 2019; Henley 2020).  These factors vary in their influence between species (Petrou et al 2016; Boyd 2019) and with latitude and season (Petrou et al 2016; Deppeler & Davidson 2017).  
+
+Seasonal variation in mixed layer depth and the presence of sea ice affects the total radiation available to phytoplankton.  The proportion (PAR) of surface insolation available for photosynthesis is adopted as a constant.  Light is attenuated through water at a constant rate with depth, although the apparent depth of light is greater in winter than summer because of a greater incident angle.  Sea ice can also significantly reduces light available to the water column [@Perovich__RN20712_1996]; the median ice thickness is approximately 1 m ().  For this model, the attenuation through sea ice is regarded as a constant and managed as an additional fraction removed from light (giving a modified PAR*) if sea ice is present, based on attenuation through 1 m of ice.   
+
+Inter-specific differences in stoichiometry and cell size mean that production by different species results in differential draw-down rates of the nutrient pools; increased surface to volume ratio of smaller cells increases nutrient uptake rate.  Unlike higher trophic levels, primary production and the nutrient pools need to incorporate seasonal changes in these rates, including changes in the mortality rate from consumption, in order to accurately estimate total annual primary production of a taxon.  The rate of uptake of  nutrients is determined by a Holling Type II and the uptake by the most limiting nutrient (either iron or silicate) determines the rate of growth. 
+
+While growth rates of individual taxa are not expected to be independently affected by different factors (Boyd etc), there are no clear multivariate models for growth rates.  Hence, classical models for growth rates are adopted here based on the model of Oke et al \citeyear[@Oke__2013_RN14929] but with the effects of light, temperature and nutrient limitation jointly applied [@Hauck__2013_RN20697; @Dutkiewicz__2020_RN20707] and the incident angle of light impacting the attenuation of light with water depth [@Melbourne-Thomas__2015_RN20577].  
+
+ Thus, growth rates are determined as  
 
 \begin{equation}
 \begin{split}
-J(t,T,\vec{N},z,SIT) & =J_{max}(T).\left(1- \textrm{exp}{\left( \frac{-\alpha.I(z,t)}{J_{max}(T)} \right)}     \right).min \left( gN_{SiO_3},gN_{Fe} \right) \\
-J_{max}(T) & = ab^T \\
-I(z,t) & =I(0,t).PAR. \textrm{exp}  {\left( \frac{-(k_{si}SIT+k_wz)}{^ID} \right)}  \\
-^ID & = \sqrt{1-\left(\frac{\cos \theta}{1.33} \right)^2}\\
+J(t,T,\vec{N},z,SIT) & = \frac {J_{max}\alpha.I(z,t)}{\sqrt{J_{max}^2+\left[\alpha.I(z,t) \right]^2}}.min \left( gN_{SiO_3},gN_{Fe} \right) \\
+J_{max} & = \mu_{max}*exp(0.06*T) \\
+I(z,t) & =I(0,t).PAR^*. \textrm{exp}  {\left( -k_w\frac{z}{\tilde{D}} \right)}  \\
+\tilde{D} & = \sqrt{1-\left(\frac{\cos \theta}{1.33} \right)^2}\\
 gN_n & =\frac{c_nN_n}{c_nN_n+\kappa_n} \\
 \end{split}
 \end{equation}
