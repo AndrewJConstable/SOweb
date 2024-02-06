@@ -271,8 +271,23 @@ save(Fe_means,file="./IO In/Fe_means.Rdata")
   
 Note that the solution will be very dependent on the proportion of the system expected to be exported.  You could configure fixed biomasses to anchor the model and estimate export flux or fix export flux and estimate biomasses.  They cannnot be estimated together!
   
+### Polygon attributes  
   
-### Surface Insolation.  
+Summarise polygon attributes, including
+i) Total Area
+ii) Mean Latitude, which influences day length over the annual cycle.
+
+```{r PolygonAttr, echo=TRUE,eval=FALSE}   
+
+# create raster
+r <- rast(ext(-180, 180, -90, -40), res = c(0.25, 0.25), crs = "EPSG:4326")
+values(r)<-sort(rep(seq((-90+0.125),(-40-0.125),0.25),1440),decreasing=TRUE)
+
+Lat_means<-fPolyMeansCellWtd(project(sMEASO,r),r,AllVectors=TRUE,wtCellArea=TRUE)
+save(Lat_means,file="./IO In/Lat_means.Rdata")
+```            
+
+### Surface Insolation  
   
 Photosynthetically active radiation (PAR) is available as mean Einsteins.$m^{-2}d^{-1}$ (https://oceancolor.gsfc.nasa.gov/resources/atbd/par/).  This is converted to Watts.$m^{-2}d^{-1}$.
 
@@ -419,7 +434,6 @@ refMonths<-sprintf("%02d",seq(1,nMonths,1))
 rCICE<-rast(fName)
 
 CICE_means<-do.call(rbind,lapply(refMonths,function(f,r){
-  # from BRAN requires converting edge from Greenwich meridian to Dateline
   fPolyMeansCellWtd(project(sMEASO,r),subset(r,f),AllVectors=TRUE,wtCellArea=TRUE)[,3]
 },rCICE))
 dimnames(CICE_means)<-list(paste0("M",refMonths),unlist(values(sMEASO)))
@@ -540,6 +554,46 @@ Need to incorporate limitation of silicic acid and how this can control the abun
   
 Productivity of phytoplankton groups will govern available production in higher trophic levels.  How to partition total production between phytoplankton groups....  
   
+  
+Maximum Growth rate is governed by temperature. Here I use the Jeffrey formulation for simplicity but has parameters suitable for diatoms and other phytoplankton (notably, Phaeocystis).  Maximum growth of diatoms with temperature is the same as that of Hauck et al (2013) and of Phaeocystis is the same as Oke et al (2013) and Melbourne-Thomas et al (2015).  The only parameter needed is the maximum growth rate, $\mu_{max}$.
+
+$$
+\mu(T)=\mu_{max}e^{0.06T}
+$$
+
+
+```{r PhMaxGrowth,echo=FALSE,eval=FALSE}
+
+fnPhotosynthesisMaxHauck<-function(MuMax,T){MuMax*exp(-4500*(1/(T+273.15)-1/288.15))}
+fnPhotosynthesisMaxDutk<-function(MuMax,T){MuMax*exp(-4000*(1/(T+273.15)-1/293.15))}
+fnPhotosynthesisMaxJeff<-function(MuMax,T){MuMax*exp(0.06*T)}
+Tr<-seq(-1,20,0.1)
+GmaxDiH<-fnPhotosynthesisMaxHauck(3.5,Tr)
+GmaxPhH<-fnPhotosynthesisMaxHauck(3,Tr)
+GmaxDiD<-fnPhotosynthesisMaxDutk(3.45,Tr)
+GmaxPhD<-fnPhotosynthesisMaxDutk(1,Tr)
+GmaxDiJ<-fnPhotosynthesisMaxJeff(1.44,Tr)
+GmaxPhJ<-fnPhotosynthesisMaxJeff(0.63,Tr)
+
+plot(Tr,GmaxDiH,type="l",ylim=c(0,5))
+lines(Tr,GmaxPhH,col="red")
+lines(Tr,GmaxDiD,col="blue")
+lines(Tr,GmaxPhD,col="green")
+lines(Tr,GmaxDiJ,col="pink")
+lines(Tr,GmaxPhJ,col="orange")
+lines(Tr,(0.6*1.066^Tr),col="brown")
+lines(Tr,(1.44*1.066^Tr),col="brown")
+
+
+f<-function(x,tr,gm){
+  d<-x[1]*x[2]^tr
+  print(x)
+  sum((gm-d)^2)
+ }
+nlm(f,c(0.5,1),tr=Tr,gm=GmaxDi)
+
+```
+
 
 ```{=latex}
 \begin{table}[!ht]
@@ -554,14 +608,13 @@ Productivity of phytoplankton groups will govern available production in higher 
 \hline
 \\
 \textit{Light}                       &     & \textit{Value}    &      &   \\
-$\quad$Attenuation PAR through sea ice   & $k_{si}$  & 0.00$^{ * }$     &      & $m^{-1}$ \\
+$\quad$Attenuation PAR through sea ice   & $k_{si}$  & 1.5$^{ * }$     &      & $m^{-1}$ \\
 $\quad$Attenuation PAR through water     & $k_w$     & 0.04$^{ *1}$    &      & $m^{-1}$ \\
 $\quad$Proportion incident radiation photosynthetically active  & $PAR$  &0.43$^{ *1}$     &      & $-$ \\
 \\
 \textit{Growth rate} &     & \textit{Diatoms}     & \textit{Other}     &   \\
 $\quad$Photosynthesis efficiency (initial slope of P-I curve) & $\alpha$  & & control$^{ *1}$ & $$ \\
-$\quad$Maximum growth rate parameters   & $a$  & & 0.6 $^{ *1}$ & $d^{-1}$ \\
-$\quad$                                 & $b$  & & 1.066 $^{ *1}$ & $^{\circ}C^{-1}$ \\
+$\quad$Maximum growth rate parameters   & $\mu_{max}$  &  1.44 $^{ *2}$ & 0.63 $^{ *2}$ & $d^{-1}$ \\
 $\quad$Half saturation constants for nutrient uptake  &  &  &  &  \\
 $\quad\quad$Silicate                                     & $K_{SiO_4}$ & 4.0 $^{ *2}$ & 0.0 $^{ *2}$ & $mmol.m^{-3}$ \\
 $\quad\quad$Dissolved Iron                               & $K_{dFe}$   & 1.0 $^{ *2}$ & 0.1 $^{ *2}$ & $\mu{mol}.m^{-3}$ \\

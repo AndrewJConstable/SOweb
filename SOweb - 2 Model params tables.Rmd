@@ -2,7 +2,12 @@
 title: "SOweb - Model Parameter Tables"
 author: "Andrew Constable"
 date: "2023-12-30"
-output: pdf_document
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 4
+classoption: landscape
+papersize: a4
 bibliography: ["SOweb.bib"]
 biblio-style: "ecology"
 link-citations: true
@@ -39,10 +44,11 @@ $\quad$Phytoplankton & $P$ & $tC.km^{-2}$ \\
 $\quad$Higher trophic levels & $B$ & $tC.km^{-2}$ \\
 \\
 \textit{Environmental Forcing Variables} & &\\
-$\quad$Mixed layer depth                          & $MLD$             & $m$          \\
-$\quad$Incident solar radiation at surface        & $I(0,t)$          & $W.m^{-2}$    \\
-$\quad$Sea ice thickness                          & $SIT$             & $m$           \\
-$\quad$Temperature                                & $T$               & $^{\circ}C$    \\
+$\quad$Mixed layer depth                                & $MLD$             & $m$          \\
+$\quad$Incident solar radiation (insolation) at surface & $I(0,t)$          & $W.m^{-2}$    \\
+$\quad$Sea ice concentration                            & $SIC$             & $\%$           \\
+$\quad$Sea ice thickness                                & $SIT$             & $m$           \\
+$\quad$Temperature                                      & $T$               & $^{\circ}C$    \\
 \\
 \hline
 \end{tabular}
@@ -72,8 +78,7 @@ $\quad$Proportion incident radiation photosynthetically active  & $PAR$     & $-
 \\
 \textit{Growth rate} &     &   \\
 $\quad$Photosynthesis efficiency (initial slope of P-I curve) & $\alpha$    & $$ \\
-$\quad$Maximum growth rate parameters                    & $a$         & $d^{-1}$ \\
-$\quad$                                                  & $b$         & $^{\circ}C^{-1}$ \\
+$\quad$Maximum growth rate                               & $\mu_{max}$         & $d^{-1}$ \\
 $\quad$Half saturation constants for nutrient uptake     &             &  \\
 $\quad\quad$Silicate                                     & $K_{SiO_4}$ & $mmol.m^{-3}$ \\
 $\quad\quad$Dissolved Iron                               & $K_{dFe}$   & $\mu{mol}.m^{-3}$ \\
