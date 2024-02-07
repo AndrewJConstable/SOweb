@@ -9,24 +9,56 @@ Date1<-as.Date("2015-07-01")
 
 #    1.2. Input Parameters ####
 
-a<-list(  Nu = NULL
-         ,Ph = list(Di = list( X     = 1 # position in state variable vector
-                              ,MuMax = 1.44 # from Jeffery
-                              ,alpha = 0.16    # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
-                              ,k_Fe  = 0.12    # micromole Fe m-3 Hauck
-                              ,k_Si  = 4.0    # millimole Si m-3 Hauck
-                              ,r_FeC = 0.005 # micromole Fe (millimole C)-1 Hauck
-                              ,r_SiC = 0.8   # mole Si (mole C)-1 Hauck
-         ) # 
-                   ,Sm = list( X     = 2
-                              ,MuMax = 0.66    # Jeffery
-                              ,alpha = 0.088   # Hauck
-                              ,k_Fe  = 0.02    # micromole Fe m-3 Hauck
-                              ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
-                               )) #
-         ,Zo = NULL
-         ,De = NULL
-       )
+a<-list( # list of taxa with their parameters and functions as needed (first letter of name is group, next 2 letters are taxon, 4th & more letter relates to subpool)
+       
+  nFeM =  list(Name    = "Nut-Iron-MLD"
+              ,X       = 1 # position in state variable vector
+              ,Consume = # from detrital pool
+                list(params = list(NULL
+                                  ) # end list
+                    ,fn     = "")
+              ,Produce  = NULL # no production of nutrients
+              ,Detritus = NULL # no function here
+              ,Import   = NULL # from change in MLD and sea ice
+              ,Export   = NULL # from change in MLD and sea ice and scavenging
+  ) # end nFeM
+ ,nFeSI =  list(Name    = "Nut-Iron-SeaIce"
+               ,X       = 1 # position in state variable vector
+               ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
+                 list(params = list(NULL
+                 ) # end list
+                 ,fn     = "")
+               ,Produce  = NULL # no production of nutrients
+               ,Detritus = NULL # no function here
+               ,Import   = NULL # from change in MLD and sea ice
+               ,Export   = NULL # from change in MLD and sea ice and scavenging
+ ) # end nFeSI
+
+   
+  ,pDi = list( Name    = "Phyto-diatom" 
+              ,X       = 1 # position in state variable vector
+              ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
+                              list(params = list(MuMax = 1.44 # from Jeffery
+                                                ,alpha = 0.16    # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
+                                                ,k_Fe  = 0.12    # micromole Fe m-3 Hauck
+                                                ,k_Si  = 4.0     # millimole Si m-3 Hauck
+                                                ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                                                ,r_SiC = 0.8     # mole Si (mole C)-1 Hauck
+                                                ) # end list
+                                 ,fn     = "")
+              ,Produce  = NULL # no production of nutrients
+              ,Detritus = NULL # no function here
+              ,Import   = NULL # from change in MLD and sea ice
+              ,Export   = NULL # from change in MLD and sea ice and scavenging
+              ) # end pDi 
+  ,pSm = list( Name  = "Phyto-small"
+                  ,X     = 2 
+                  ,MuMax = 0.66    # Jeffery
+                  ,alpha = 0.088   # Hauck
+                  ,k_Fe  = 0.02    # micromole Fe m-3 Hauck
+                  ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                   ) # end pSm
+       ) # end a
 
 #    1.3. Constants
 

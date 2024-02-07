@@ -125,16 +125,12 @@ Ji<-lapply(names(a$Ph),fnPh_MeanGrowthRateInTstep,a,cE,tE,Jmax) # J with insolat
 names(Ji)<-names(a$Ph)
 
 
-tV <-list(    Nu = NULL
-              ,Ph = list(Di = list(Jmax = Jmax[["Di"]]
-                                   ,Ji = Ji[["Di"]]
-                                   ) # end Di list
-                         ,Sm = list(Jmax = Jmax[["Sm"]]
-                                    ,Ji = Ji[["Sm"]]
-                                    ) # end Sm list
-                         ) # end Ph list
-              ,Zo = NULL
-              ,De = NULL
+tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
+                    ,Ji = Ji[["pDi"]]
+                    ) # end pDi list
+         ,pSm = list(Jmax = Jmax[["pSm"]]
+                    ,Ji = Ji[["pSm"]]
+                    ) # end pSm list
         ) # end tIV
 
 
@@ -143,6 +139,7 @@ tV <-list(    Nu = NULL
 fnSOwebDE <- function(k # vector element to read  (not used by JMT)
               ,X # X vector - NPZD
               ,a # parameters
+              ,cE
               ,tE # new - time step vectors of environmental variables
               ,tV # new - time step vectors for use as needed in integration
 #              ,mld # mixed layer depth for time step
@@ -151,6 +148,28 @@ fnSOwebDE <- function(k # vector element to read  (not used by JMT)
 #              ,J # phytoplankton growth rate
               ){ # start function
 Xp1<-X*0
+
+
+# Generate X by X matrix of consumption - rows(consumed) cols(consumer) 
+   # usual consumption of predators and prey
+   # include consumption of detritus by nutrients
+
+      sapply(names(X),function(taxon,X,a,cE,tE,tV){
+          do.call(a[[taxon]]$Consume$fn,list(taxon,a[[taxon]]$Consume$fn,),X,a,cE,tE,tV) # return vector of consumed taxa
+      },X,a,cE,tE,tV)
+      Consumption<-as.matrix(do.call(cbind,Consumption))
+      dimnames(Consumption)<-list(names(X),names(X))
+
+# Vector of Mortality from consumption
+
+# Vector of Growth from consumption
+
+# Generate matrix of detrital accumulation (natural mortality) - rows(taxa) cols(taxa)
+#    note only detrital pools will have values > 0
+
+# Generate vector of import - X 
+
+# Generate vector of export - X
 
 Nutrients<-1 # just for testing
 
