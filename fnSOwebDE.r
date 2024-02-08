@@ -72,11 +72,6 @@ eTemp_Deep <-fnReorderMonthVector(Month1,eTemp_Deep)
 # vector for days corresponding to months plus beginning and end of year for interpolation
 DayMM<-c(0,DayMidMonth[orderMonths][1],(cumsum(DaysInMonth[orderMonths])[1:11]+DayMidMonth[orderMonths][2:12]),366)
 
-fnInterpolateVectorToTimeSteps<-function(V,VtSteps,tSteps){
-if((length(VtSteps)-length(V))==2)  {V_0<-(V[1]+V[length(V)])/2; V<-c(V_0,V,V_0)}
-approx(VtSteps,V,tSteps)$y
-}
-
 # vector of day in year at each time step
 library(lubridate)
 Day1<-yday(Date1)
@@ -102,28 +97,18 @@ tE<-c(tE,list(dMLD  = c(diff(tE$MLD),(tE$MLD[length(tE$MLD)]-tE$MLD[1]))
 
 #    2.3 Timestep vectors invariant over integration - save time here ####
 
-fnPh_PhotosynthesisMaxJeffery<-function(MuMax,T){MuMax*exp(0.06*T)}
-Jmax<-lapply(names(a$Ph),function(Ph,a,Temp){
-       res<-fnPh_PhotosynthesisMaxJeffery(a$Ph[[Ph]]$MuMax,Temp)
+pTaxa<-c("pDi","pSm")
+Jmax<-lapply(pTaxa,function(s,a,Temp){
+       fnPh_PhotosynthesisMaxJeffery(a[[s]]$Consume$params$MuMax,Temp)
        },a,tE$Temp_MLD)
-names(Jmax)<-names(a$Ph)
+names(Jmax)<-pTaxa
 
-fnPh_MeanGrowthRateInTstep<-function(Ph,a,cE,tE,Jmax){
-    # mean growth rate is the weighted mean (by percent coverage of sea ice) of the daily mean growth rate in sea ice and in open water 
-    
-    # open water
-   JepOpen<-EvansParslow(Ph,a,cE,tE,cE$par$w,Jmax)  
-   
-    # sea ice
-   JepSI<-EvansParslow(Ph,a,cE,tE,cE$par$si,Jmax)  
-   
-    # return weighted mean
-   return(JepOpen*tE$OpenWater+JepSI*tE$CICE)
-        } # end function
+Ji<-lapply(pTaxa,fnPh_MeanGrowthRateInTstep,a,cE,tE,Jmax) # J with insolation limitation
+names(Ji)<-pTaxa
 
-Ji<-lapply(names(a$Ph),fnPh_MeanGrowthRateInTstep,a,cE,tE,Jmax) # J with insolation limitation
-names(Ji)<-names(a$Ph)
-
+ratio_FeC<-sapply(names(a) # read all iron to carbon ratios for converting carbon to iron
+                  ,function(s,a){a[[s]]$Attr$r_FeC},a) 
+names(ratio_FeC)<-names(a)
 
 tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
                     ,Ji = Ji[["pDi"]]
@@ -131,8 +116,15 @@ tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
          ,pSm = list(Jmax = Jmax[["pSm"]]
                     ,Ji = Ji[["pSm"]]
                     ) # end pSm list
+         ,nRatio = list(r_FeC = ratio_FeC # note ratio name is the same used in attributes
+                       ,r_SiC = NULL   )
         ) # end tIV
 
+
+# set up X
+
+X<-rep(1000,length(a))
+names(X)<-names(a)
 
 ## RHS of NPZD system (from Melbourne-Thomas et al 2015) ####
 
@@ -153,9 +145,10 @@ Xp1<-X*0
 # Generate X by X matrix of consumption - rows(consumed) cols(consumer) 
    # usual consumption of predators and prey
    # include consumption of detritus by nutrients
-
-      sapply(names(X),function(taxon,X,a,cE,tE,tV){
-          do.call(a[[taxon]]$Consume$fn,list(taxon,a[[taxon]]$Consume$fn,),X,a,cE,tE,tV) # return vector of consumed taxa
+      Action<-"Consume"
+      Consumption<-sapply(names(X),function(taxon,X,a,cE,tE,tV){
+         if(a[[taxon]][[Action]]$fn=="" | is.null(a[[taxon]][[Action]]$fn) | is.null(a[[taxon]][[Action]])) return(X*0) else
+          return(do.call(a[[taxon]]$Consume$fn,list(taxon,a[[taxon]]$Consume$params),X,a,cE,tE,tV,k)) # return vector of consumed taxa
       },X,a,cE,tE,tV)
       Consumption<-as.matrix(do.call(cbind,Consumption))
       dimnames(Consumption)<-list(names(X),names(X))

@@ -5,7 +5,29 @@
 # last update 20240206
 
 
-# Primary Production ####
+# General ####
+
+fnInterpolateVectorToTimeSteps<-function(V,VtSteps,tSteps){
+  if((length(VtSteps)-length(V))==2)  {V_0<-(V[1]+V[length(V)])/2; V<-c(V_0,V,V_0)}
+  approx(VtSteps,V,tSteps)$y
+}
+
+fnPh_MeanGrowthRateInTstep<-function(s,a,cE,tE,Jmax){
+  # mean growth rate is the weighted mean (by percent coverage of sea ice) of the daily mean growth rate in sea ice and in open water 
+  
+  # open water
+  JepOpen<-EvansParslow(s,a,cE,tE,cE$par$w,Jmax)  
+  
+  # sea ice
+  JepSI<-EvansParslow(s,a,cE,tE,cE$par$si,Jmax)  
+  
+  # return weighted mean
+  return(JepOpen*tE$OpenWater+JepSI*tE$CICE)
+} # end function
+
+# Phytoplankton ####
+
+fnPh_PhotosynthesisMaxJeffery<-function(MuMax,T){MuMax*exp(0.06*T)}
 
 #     Evans-Parslow routine modified from Melbourne-Thomas et al 2015 ####
 #          Angle of incident radiation is dependent on time of day and day of the year (tilt of the Earth) and influences the 
@@ -13,7 +35,7 @@
  
 EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, day length and mixed layer depth
                           # note Jmax(T) from Jeffery et al
-   Ph     # character name for phytoplankton group in list
+   s     # character name for phytoplankton group in list
   ,a      # biological parameters
   ,cE     # environmental constants
   ,tE     # environmental time series
@@ -54,8 +76,8 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
 
   daylen <- daylen/2
   radbio <- pmax(1.0,PAR*tE$Insol)
-  vpbio <- Jmax[[Ph]]
-  fx1 <- daylen^2*vpbio/(a$Ph[[Ph]]$alpha*radbio)
+  vpbio <- Jmax[[s]]
+  fx1 <- daylen^2*vpbio/(a[[s]]$Consume$params$alpha*radbio)
   fx3 <- fx1
   fx4 <- fx1/rayb
   fu1 <- sqrt(fx3^2+daylen^2)
@@ -66,3 +88,14 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
 
   J
 }
+
+fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
+  res<-X*0
+  # determine nutrient uptake rates, take minimums & adjust J taken up
+  J<-tV[[s]]$Ji[tStep]*min(sapply(sParams$food,function(f,X,P){X[f]/(X[f]+P$k[P$food%in%f])},X,sParams),na.rm=TRUE)
+  J[is.na(J)]<-0
+  res[sParams$food]<-sapply(sParams$food,function(f,s,J,X,a,tV){
+                       return(J*X[[s]]*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][s])
+                       },s,J,X,a,tV)
+  return(res) # vector of amount of each pool consumed in units X
+} # end fnPhConsume

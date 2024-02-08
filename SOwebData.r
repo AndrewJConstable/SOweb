@@ -13,6 +13,8 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
        
   nFeM =  list(Name    = "Nut-Iron-MLD"
               ,X       = 1 # position in state variable vector
+              ,Attr    = list(Which_C_ratio = "r_FeC"
+                          )  
               ,Consume = # from detrital pool
                 list(params = list(NULL
                                   ) # end list
@@ -24,9 +26,11 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
   ) # end nFeM
  ,nFeSI =  list(Name    = "Nut-Iron-SeaIce"
                ,X       = 1 # position in state variable vector
+               ,Attr    = list(Which_C_ratio = "r_FeC"
+                               )        
                ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
                  list(params = list(NULL
-                 ) # end list
+                                   ) # end list
                  ,fn     = "")
                ,Produce  = NULL # no production of nutrients
                ,Detritus = NULL # no function here
@@ -37,14 +41,17 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
    
   ,pDi = list( Name    = "Phyto-diatom" 
               ,X       = 1 # position in state variable vector
+              ,Attr   = list( Cwt   = NULL     # g.Carbon individual
+                             ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
+                             ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                             ,r_SiC = 0.8     # mole Si (mole C)-1 Hauck
+                             ) # end Attributes
               ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
-                              list(params = list(MuMax = 1.44 # from Jeffery
-                                                ,alpha = 0.16    # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
-                                                ,k_Fe  = 0.12    # micromole Fe m-3 Hauck
-                                                ,k_Si  = 4.0     # millimole Si m-3 Hauck
-                                                ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
-                                                ,r_SiC = 0.8     # mole Si (mole C)-1 Hauck
-                                                ) # end list
+                              list(params = list(food   = c("nFeM","nSiM") # names of taxa being consumed - from names(a)
+                                                ,MuMax = 1.44 # from Jeffery
+                                                ,alpha = 0.16            # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
+                                                ,k    =  c(0.12,4.0)    # micromole m-3 Hauck  - vector of half saturation constants for each food
+                                                 ) # end list
                                  ,fn     = "")
               ,Produce  = NULL # no production of nutrients
               ,Detritus = NULL # no function here
@@ -53,11 +60,22 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
               ) # end pDi 
   ,pSm = list( Name  = "Phyto-small"
                   ,X     = 2 
-                  ,MuMax = 0.66    # Jeffery
-                  ,alpha = 0.088   # Hauck
-                  ,k_Fe  = 0.02    # micromole Fe m-3 Hauck
-                  ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
-                   ) # end pSm
+                  ,Attr   = list( Cwt   = NULL     # g.Carbon individual
+                               ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
+                               ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                               ) # end Attributes
+               ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
+                 list(params = list(food   = c("nFeM") # names of taxa being consumed - from names(a)
+                                    ,MuMax = 0.66 # from Jeffery
+                                    ,alpha = 0.088    # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
+                                    ,k    =  c(0.02)    # micromole Fe m-3 Hauck  - vector of half saturation constants for each food
+                                    ) # end list
+                    ,fn     = "")
+               ,Produce  = NULL # no production of nutrients
+               ,Detritus = NULL # no function here
+               ,Import   = NULL # from change in MLD and sea ice
+               ,Export   = NULL # from change in MLD and sea ice and scavenging
+  ) # end pSm
        ) # end a
 
 #    1.3. Constants

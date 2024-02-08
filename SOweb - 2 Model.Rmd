@@ -76,7 +76,7 @@ gN_n & =\frac{c_nN_n}{c_nN_n+\kappa_n} \\
 \end{split}
 \end{equation}
 
-where $gN$ is the functional relationship of phytoplankton, *p*, consuming nutrient, *n*.  $c_p$ is the degree to which the phytoplankton taxon can compete for the nutrient.  This term allows for competition between phytoplankton groups as groups form dense blooms based on the size of the population.
+where $gN$ is the functional relationship of phytoplankton, *p*, consuming nutrient, *n*.  $c_p$ is the degree to which the phytoplankton taxon can compete for the nutrient.  This term allows for competition between phytoplankton groups as groups form dense blooms based on the size of the population.  Note that this formulation simplifies the relationship between silicate uptake and growth in diatoms, where the growth rate is more rapidly limited with decline silicate (Hauck et al 2013). 
 
 While competition amongst phytoplankton groups is not expected in oligotrophic waters (Behrenfeld et al), a competition term, *c*, is included to allow for when blooms occur and potentially interfere with nutrient access by less dominant species.
 
