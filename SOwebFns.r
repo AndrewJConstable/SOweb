@@ -91,11 +91,13 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
 
 fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
   res<-X*0
-  # determine nutrient uptake rates, take minimums & adjust J taken up
+  PhyConc<-X[s]*a[[s]]$Attr$MassToMole/tE$MLD[tStep] # convert mass to mole (ensure units are correct for conversion)
+    # determine nutrient uptake rates, take minimums & adjust J taken up
   J<-tV[[s]]$Ji[tStep]*min(sapply(sParams$food,function(f,X,P){X[f]/(X[f]+P$k[P$food%in%f])},X,sParams),na.rm=TRUE)
   J[is.na(J)]<-0
-  res[sParams$food]<-sapply(sParams$food,function(f,s,J,X,a,tV){
-                       return(J*X[[s]]*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][s])
-                       },s,J,X,a,tV)
+    res[sParams$food]<-sapply(sParams$food,function(f,s,J,X,a,tV,PhyConc){
+                       return(J*PhyConc*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
+                       },s,J,X,a,tV,PhyConc)
+    print(res)
   return(res) # vector of amount of each pool consumed in units X
 } # end fnPhConsume

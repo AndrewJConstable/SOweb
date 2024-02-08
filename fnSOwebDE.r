@@ -29,14 +29,14 @@ source("SOwebData.r")
 
 # 3. Subset Environmental Data ####
 
-nFe_0      <-Fe_means[Fe_means[,"MEASO_area"]==TargetArea,3]
-nSi_0      <-Si_means[Si_means[,"MEASO_area"]==TargetArea,3]
-eLat       <-Lat_means[Lat_means[,"MEASO_area"]==TargetArea,3]
-eInsol     <-Insol_means[,TargetArea]
-eMLD       <-MLD_means[,TargetArea]
-eCICE      <-CICE_means[,TargetArea]
-eTemp_MLD  <-Temp_MLD_means[,TargetArea]
-eTemp_Deep <-Temp_Deep_means[,TargetArea]
+nFe_0      <-Fe_means[Fe_means[,"MEASO_area"]==TargetArea,3]   # micromole.m-3
+nSi_0      <-Si_means[Si_means[,"MEASO_area"]==TargetArea,3]   # millimole.m-3
+eLat       <-Lat_means[Lat_means[,"MEASO_area"]==TargetArea,3] # degrees (negative = south)
+eInsol     <-Insol_means[,TargetArea]                          # Watts.m-2.day-1
+eMLD       <-MLD_means[,TargetArea]                            # m
+eCICE      <-CICE_means[,TargetArea]                           # percent
+eTemp_MLD  <-Temp_MLD_means[,TargetArea]                       # oC
+eTemp_Deep <-Temp_Deep_means[,TargetArea]                      # oC
 
 
 # 2. Pre-minimisation simplification and standardisation ####
@@ -107,8 +107,9 @@ Ji<-lapply(pTaxa,fnPh_MeanGrowthRateInTstep,a,cE,tE,Jmax) # J with insolation li
 names(Ji)<-pTaxa
 
 ratio_FeC<-sapply(names(a) # read all iron to carbon ratios for converting carbon to iron
-                  ,function(s,a){a[[s]]$Attr$r_FeC},a) 
-names(ratio_FeC)<-names(a)
+                  ,function(s,a){if(is.null(a[[s]]$Attr$r_FeC)) NA else a[[s]]$Attr$r_FeC},a)
+ratio_SiC<-sapply(names(a) # read all silica to carbon ratios for converting carbon to silica
+                  ,function(s,a){if(is.null(a[[s]]$Attr$r_SiC)) NA else a[[s]]$Attr$r_SiC},a)
 
 tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
                     ,Ji = Ji[["pDi"]]
@@ -117,14 +118,13 @@ tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
                     ,Ji = Ji[["pSm"]]
                     ) # end pSm list
          ,nRatio = list(r_FeC = ratio_FeC # note ratio name is the same used in attributes
-                       ,r_SiC = NULL   )
+                       ,r_SiC = ratio_SiC   )
         ) # end tIV
 
 
 # set up X
 
-X<-rep(1000,length(a))
-names(X)<-names(a)
+X<-sapply(names(a),function(s,a){a[[s]]$X0},a)
 
 ## RHS of NPZD system (from Melbourne-Thomas et al 2015) ####
 
@@ -146,13 +146,12 @@ Xp1<-X*0
    # usual consumption of predators and prey
    # include consumption of detritus by nutrients
       Action<-"Consume"
-      Consumption<-sapply(names(X),function(taxon,X,a,cE,tE,tV){
-         if(a[[taxon]][[Action]]$fn=="" | is.null(a[[taxon]][[Action]]$fn) | is.null(a[[taxon]][[Action]])) return(X*0) else
-          return(do.call(a[[taxon]]$Consume$fn,list(taxon,a[[taxon]]$Consume$params),X,a,cE,tE,tV,k)) # return vector of consumed taxa
+      Consumption<-sapply(names(X),function(s,X,a,cE,tE,tV){
+         if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn) | is.null(a[[s]][[Action]])) return(X*0) else
+          return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,k))) # return vector of consumed taxa
       },X,a,cE,tE,tV)
-      Consumption<-as.matrix(do.call(cbind,Consumption))
-      dimnames(Consumption)<-list(names(X),names(X))
-
+     Consumption<-as.matrix(Consumption)
+     
 # Vector of Mortality from consumption
 
 # Vector of Growth from consumption

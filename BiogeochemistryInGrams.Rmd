@@ -1,0 +1,60 @@
+---
+title: "Biogeochemistry in grams"
+author: "Andrew Constable"
+date: "2023-12-30"
+output: 
+  pdf_document:
+    toc: true
+    toc_depth: 4
+papersize: a4
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(bookdown)
+```
+
+## Introduction
+
+A challenge for ecologists in understanding the literature behind end-to-end ecosystem models is to also understand how to link macro-ecology to the physics of photosynthesis and the chemistry of both primary production and detrital pools.  Biogeochemical models aim to represent the processes of primary production at a cellular level, involving concentations of nutrients and quanta of light.  Importantly, these models also explore the relationships between different nutrient pools and transition of those pools into living matter and back to non-living matter. In contrast, food web models grossly simplify these biogeochemical processes and manage the transitions of mass, usually carbon, between different organic (living and non-living) pools.  End-to-end models combine these two levels of detail.
+  
+The underlying problem is to match the transition of units from Einsteins (incoming radiation) through moles (chemical concentrations) to tonnes (mass).  Equations provided in manuscripts often forego representing the underlying programming code of standard physical, chemical and biological theory.
+
+This document is intended to help a biologist understand the steps that relate state variables in the physical, chemical and biological realms.
+
+## Light
+
+Photosynthetically active radiation (PAR) is only a portion of the spectrum of light.  If the wavelengths of light relevant to photosynthesis are not directly estimated then a constant fraction (0.45) is applied.  Measures of incoming light may be reported as Einsteins (moles of photons) per square metre per time), such as for PAR databases, or total surface insolation (cumulative energy, watts per square metre).  Conversion from Einsteins to Watts is (https://www3.mbari.org/bog/nopp/par.html)
+
+$$
+W.m^{-2}=2.516*E.m^{-2}d^{-1}
+$$ 
+  
+## Photosynthetic Chemistry  
+  
+Photosynthesis by phytoplankton draws on macro- and micro-nutrients.  Units for the different chemical species are in concentrations, such that
+
+N  $mmol.m^{-3}$
+C  $mmol.m^{-3}$
+Fe $\mu{}mol.m^{-3}$
+Si $mmol.m^{-3}$
+
+Equations for photosynthesis relate carbon accumulation (millimole) per mass (mg) of chlorophyll per Watt.m-2.  Total photosynthesis is dependent on the possible rates of uptake of the macro- and micro-nutrients.  While the abundance of chlorophyll per phytoplankton cell may alter with equilibration to a level of light, the photosynthesis-irradiance curves are often modelled as invariant such that they represent the growth rates of phytoplankton under different light conditions. 
+
+The reduction in the respective nutrient pools is then determined by the ratio in concentrations between the nutrient and carbon in the phytoplankton and the carbon accumulation (growth rate * initial carbon quantity in millimoles).  Monitoring the phytoplankton pool as a concentration means that the processes of adding to and recycling the detrital pool can be readily undertaken.
+
+## Food webs
+
+Components of food webs are more easily modelled in mass (kg) per unit area (m-2).  Food webs contribute to detrital pools through waste and decomposition.  The contribution of their detritus to nutrient pools needs to account for differences between taxa in the food web in their nutrient composition.
+
+Thus, the units of different nodes in the food web, including nutrient pools, need to be monitored and appropriate conversions applied in functions linking different groups. Along with the ratio of nutrients to carbon in the different taxa, the conversion of concentration to mass for carbon is:
+
+$$
+C.g.m^{-2}=12.C.mmol.m^{-3}Z.m
+$$
+where Z is the water depth.
+
+
+
+
