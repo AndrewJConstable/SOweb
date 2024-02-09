@@ -142,20 +142,26 @@ fnSOwebDE <- function(k # vector element to read  (not used by JMT)
 Xp1<-X*0
 
 
+t<-1
 # Generate X by X matrix of consumption - rows(consumed) cols(consumer) 
    # usual consumption of predators and prey
    # include consumption of detritus by nutrients
       Action<-"Consume"
-      Consumption<-sapply(names(X),function(s,X,a,cE,tE,tV){
-         if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn) | is.null(a[[s]][[Action]])) return(X*0) else
-          return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,k))) # return vector of consumed taxa
-      },X,a,cE,tE,tV)
+      Consumption<-sapply(names(X),function(s,X,a,cE,tE,tV,t){
+        if(is.null(a[[s]][[Action]])) return(0) else if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn)) return(X*0) else
+          return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,t))) # return vector of consumed taxa
+      },X,a,cE,tE,tV,t)
      Consumption<-as.matrix(Consumption)
+
+# Vector of Production from consumption
+
+     Action<-"Produce"
+     Production<-sapply(names(X),function(s,X,a,cE,tE,tV,k){
+       if(is.null(a[[s]][[Action]])) return(0) else if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn)) return(0) else
+         return(do.call(a[[s]][[Action]]$fn,list(s,Consumption,a[[s]][[Action]]$params,X,a,cE,tE,tV,k))) # return vector of consumed taxa
+     },X,a,cE,tE,tV,k)
+     Production<-as.vector(Production)
      
-# Vector of Mortality from consumption
-
-# Vector of Growth from consumption
-
 # Generate matrix of detrital accumulation (natural mortality) - rows(taxa) cols(taxa)
 #    note only detrital pools will have values > 0
 
@@ -163,6 +169,11 @@ Xp1<-X*0
 
 # Generate vector of export - X
 
+     
+     # Vector of Mortality from consumption
+     
+     
+     
 Nutrients<-1 # just for testing
 
 Xp1[a$Ph$Di$X] <- X[a$Ph$Di$X]*(tV$Ph$Di$Ji[k]*Nutrients)

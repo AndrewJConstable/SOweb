@@ -91,13 +91,23 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
 
 fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
   res<-X*0
-  PhyConc<-X[s]*a[[s]]$Attr$MassToMole/tE$MLD[tStep] # convert mass to mole (ensure units are correct for conversion)
-    # determine nutrient uptake rates, take minimums & adjust J taken up
-  J<-tV[[s]]$Ji[tStep]*min(sapply(sParams$food,function(f,X,P){X[f]/(X[f]+P$k[P$food%in%f])},X,sParams),na.rm=TRUE)
+  MLD<-tE$MLD[tStep]
+  PhyConc<-X[s]*a[[s]]$Attr$MassToMole/MLD # convert mass to conc
+  FoodConc<-sapply(sParams$food,function(f,X,MLD){X[f]/MLD},X,MLD)
+  names(FoodConc)<-sParams$food
+      # determine nutrient uptake rates, take minimums & adjust J
+  J<-tV[[s]]$Ji[tStep]*min(sapply(sParams$food,function(f,FC,P){FC[f]/(FC[f]+P$k[P$food%in%f])},FoodConc,sParams),na.rm=TRUE)
   J[is.na(J)]<-0
-    res[sParams$food]<-sapply(sParams$food,function(f,s,J,X,a,tV,PhyConc){
-                       return(J*PhyConc*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
-                       },s,J,X,a,tV,PhyConc)
-    print(res)
+    res[sParams$food]<-sapply(sParams$food,function(f,s,J,a,tV,PhyMoleC){
+                       return(J*PhyMoleC*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
+                       },s,J,a,tV,PhyConc*MLD)
   return(res) # vector of amount of each pool consumed in units X
 } # end fnPhConsume
+
+
+fnPhProduceFe<-function(s,C,sParams,X,a,cE,tE,tV,tStep){ # production based on iron consumption
+  MoleToMass<-tE$MLD[tStep] / a[[s]]$Attr$MassToMole # convert mole to mass (ensure units are correct for conversion)
+  C_FeRatio<-1/a[[s]]$Attr$r_FeC 
+  return(C["nFeM",s]*MoleToMass*C_FeRatio) # vector of amount of each pool consumed in units X
+} # end fnPhProduceFe
+

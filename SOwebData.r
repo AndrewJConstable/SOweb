@@ -12,11 +12,11 @@ Date1<-as.Date("2015-07-01")
 a<-list( # list of taxa with their parameters and functions as needed (first letter of name is group, next 2 letters are taxon, 4th & more letter relates to subpool)
        
   nFeM =  list(Name    = "Nut-Iron-MLD"
-              ,X0       = 20 # possible starting value
-              ,Attr    = list( Units = "umole.m-3" # micromole
+              ,X0       = 100 # possible starting value
+              ,Attr    = list( Units = "umole.m-2" # micromole
                               ,Which_C_ratio = "r_FeC"
                           )  
-              ,Consume = # from detrital pool
+              ,Consume = # from detrital pool, deep water, sea ice
                 list(params = list(NULL
                                   ) # end list
                     ,fn     = "")
@@ -26,43 +26,43 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
               ,Export   = NULL # from change in MLD and sea ice and scavenging
   ) # end nFeM
   ,nFeSI =  list(Name    = "Nut-Iron-SeaIce"
-                 ,X0       = 20 # possible starting value
-                 ,Attr    = list(Units="umol.m-3"
+                 ,X0       = 100 # possible starting value
+                 ,Attr    = list(Units="umol.m-2"
                                  ,Which_C_ratio = "r_FeC"
                  )        
-                 ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
+                 ,Consume = # from mixed layer due to freezing 
                    list(params = list(NULL
                    ) # end list
                    ,fn     = "")
-                 ,Produce  = NULL # no production of nutrients
+                 ,Produce  = NULL # transfer consumption to production
                  ,Detritus = NULL # no function here
                  ,Import   = NULL # from change in MLD and sea ice
                  ,Export   = NULL # from change in MLD and sea ice and scavenging
   ) # end nFeSI
   ,nSiM =  list(Name    = "Nut-Silicate-MLD"
-               ,X0       = 20 # possible starting value
-               ,Attr    = list( Units = "mmole.m-3" # millimole
+               ,X0       = 4000 # possible starting value
+               ,Attr    = list( Units = "mmole.m-2" # millimole
                                 ,Which_C_ratio = "r_SiC"
                )  
-               ,Consume = # from detrital pool
+               ,Consume = # from detrital pool, deep water, sea ice
                  list(params = list(NULL
                  ) # end list
                  ,fn     = "")
-               ,Produce  = NULL # no production of nutrients
+               ,Produce  = NULL # transfer consumption
                ,Detritus = NULL # no function here
                ,Import   = NULL # from change in MLD and sea ice
                ,Export   = NULL # from change in MLD and sea ice and scavenging
   ) # end nSiM
  ,nSiSI =  list(Name    = "Nut-Silicate-Sea ice"
                ,X0       = 20 # possible starting value
-               ,Attr    = list( Units = "mmole.m-3" # millimole
+               ,Attr    = list( Units = "mmole.m-2" # millimole
                                 ,Which_C_ratio = "r_SiC"
                )  
-               ,Consume = # from detrital pool
+               ,Consume = # from freezing of sea ice
                  list(params = list(NULL
                  ) # end list
                  ,fn     = "")
-               ,Produce  = NULL # no production of nutrients
+               ,Produce  = NULL # transfer consumption
                ,Detritus = NULL # no function here
                ,Import   = NULL # from change in MLD and sea ice
                ,Export   = NULL # from change in MLD and sea ice and scavenging
@@ -84,8 +84,10 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                                                 ,alpha = 0.16            # (W m-2 d)-1 Hauck - note alpha*q{Chl:N}*q{N:C}
                                                 ,k    =  c(0.12,4.0)    # micromole.m-3, millimole.m-3 Hauck  - vector of half saturation constants for each food
                                                  ) # end list
-                                 ,fn     = "fnPhConsume")
-              ,Produce  = NULL # no production of nutrients
+                                  ,fn     = "fnPhConsume")
+              ,Produce  =  # convert the amount consumed into carbon mass
+                              list(params = NULL # end list
+                                  ,fn     = "fnPhProduceFe")
               ,Detritus = NULL # no function here
               ,Import   = NULL # from change in MLD and sea ice
               ,Export   = NULL # from change in MLD and sea ice and scavenging
@@ -105,7 +107,9 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                                     ,k    =  c(0.02)    # millimole Fe m-3 Hauck  - vector of half saturation constants for each food
                                     ) # end list
                     ,fn     = "fnPhConsume")
-               ,Produce  = NULL # no production of nutrients
+               ,Produce  =  # convert the amount consumed into carbon mass
+                              list(params = NULL # end list
+                                  ,fn     = "fnPhProduceFe")
                ,Detritus = NULL # no function here
                ,Import   = NULL # from change in MLD and sea ice
                ,Export   = NULL # from change in MLD and sea ice and scavenging
