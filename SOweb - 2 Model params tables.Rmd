@@ -1,5 +1,5 @@
 ---
-title: "SOweb - Model Parameter Tables"
+title: "SOweb - Parameters, Energy Flows & Impacts"
 author: "Andrew Constable"
 date: "2023-12-30"
 output: 
@@ -19,6 +19,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(bookdown)
 ```
 
+## State and environmental variables  
+  
 ```{=latex}
 \begin{table}[!ht]
 \centering
@@ -57,8 +59,8 @@ $\quad$Temperature                                      & $T$               & $^
 ```
   
   
-
-  
+# Primary Producers  
+    
 ```{=latex}
 \begin{table}[!ht]
 \centering
@@ -96,8 +98,9 @@ $\quad$   & $$  & $$ \\
 \label{ex:BasePhytoplanktonParameters}
 \end{table}
 ```
-    
-
+      
+  
+## Parameter Allocation  
   
 ```{=latex}
 \begin{table}[!ht]
@@ -259,5 +262,58 @@ Depth & $z$    & $m$   & Environment\\
 \label{ex:ModelParams2}
 \end{table}
 ```
-
+  
+  
+## Energy Flows and Impacts  
+  
+  
+```{=latex}
+\begin{table}[!ht]
+\centering
+\textbf{\caption{Energy Flows}}
+\begin{tabular}{l c c c c c c c c c c c c c c c c c c c c c c c c c c c c c}
+\\
+\hline
+\\
+\textbf{Consumed} &nFeM &nFeD &nFeSI &nSiM &nSiD &nSiSI &nCaM &nCaD &nCaSI &pDi
+                  &pSm &z & & & & & & & & 
+                  & & & & & & & & &  \\
+\\
+\textbf{Consumed} & & & & & & & & & &
+                  & & & & & & & & & & 
+                  & & & & & & & & &  \\
+\hline
+\\
+Time & $t$    & $$   & Subscript \\ 
+Terrestrial inputs & $ti$    & $$   & Subscript\\ 
+Temperature & $T$    & $^{\circ}C$   & Environment\\ 
+& $\theta$    & $$   & \\ 
+& $\Theta$    & $$   & \\ 
+& $\vartheta$    & $$   & \\ 
+& $\tau$    & $$   & \\ 
+& $u$    & $$   & \\ 
+& $U$    & $$   & \\ 
+& $\upsilon$    & $$   & \\ 
+& $\Upsilon$    & $$   & \\ 
+& $v$    & $$   & \\ 
+& $V$    & $$   & \\ 
+& $w$    & $$   & \\ 
+& $W$    & $$   & \\ 
+& $x$    & $$   & \\ 
+& $X$    & $$   & \\ 
+& $\xi$    & $$   & \\ 
+& $\Xi$    & $$   & \\ 
+& $\chi$    & $$   & \\ 
+& $y$    & $$   & \\ 
+& $Y$    & $$   & \\ 
+Depth & $z$    & $m$   & Environment\\ 
+& $Z$    & $$   & \\ 
+& $\zeta$    & $$   & \\ 
+\\
+\hline
+\end{tabular}
+\label{ex:ModelParams2}
+\end{table}
+```
+  
  

@@ -119,8 +119,21 @@ tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
                     ) # end pSm list
          ,nRatio = list(r_FeC = ratio_FeC # note ratio name is the same used in attributes
                        ,r_SiC = ratio_SiC   )
+         ,nDissolve = matrix(c(rep(0.0,nStepsPerYr) 
+                               ,0.015*exp(0.06*tE$Temp_MLD)^2
+                               ,0.015*exp(0.06*tE$Temp_Deep)^2
+                               ,rep(0.005,nStepsPerYr)               
+                               ,rep(0.0,nStepsPerYr)
+                               ,0.015*exp(0.06*tE$Temp_MLD)^2
+                               ,0.015*exp(0.06*tE$Temp_Deep)^2
+                               ,rep(0.005,nStepsPerYr)  
+                               ,rep(0.0,nStepsPerYr)
+                               ,pmin(1.32E16*exp(-11200/(tE$Temp_MLD+273.15)),0.02) # Hauck et al 2013
+                               ,pmin(1.32E16*exp(-11200/(tE$Temp_Deep+273.15)),0.02) # Hauck et al
+                               ,rep(0.005,nStepsPerYr)),nrow=nStepsPerYr,dimnames=list(NULL,  
+                         c("dCaSI","dCaM","dCaD","dCaS","dFeSI","dFeM","dFeD","dFeS"
+                           ,"dSiSI","dSiM","dSiD","dSiS")))
         ) # end tIV
-
 
 # set up X
 
@@ -149,36 +162,27 @@ t<-1
       Action<-"Consume"
       Consumption<-sapply(names(X),function(s,X,a,cE,tE,tV,t){
         if(is.null(a[[s]][[Action]])) return(0) else if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn)) return(X*0) else
-          return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,t))) # return vector of consumed taxa
+                    return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,t))) # return vector of consumed taxa
       },X,a,cE,tE,tV,t)
      Consumption<-as.matrix(Consumption)
 
 # Vector of Production from consumption
 
      Action<-"Produce"
-     Production<-sapply(names(X),function(s,X,a,cE,tE,tV,k){
+     Production<-sapply(names(X),function(s,X,a,cE,tE,tV,k,C){
        if(is.null(a[[s]][[Action]])) return(0) else if(a[[s]][[Action]]$fn=="" | is.null(a[[s]][[Action]]$fn)) return(0) else
-         return(do.call(a[[s]][[Action]]$fn,list(s,Consumption,a[[s]][[Action]]$params,X,a,cE,tE,tV,k))) # return vector of consumed taxa
-     },X,a,cE,tE,tV,k)
+         return(do.call(a[[s]][[Action]]$fn,list(s,C,a[[s]][[Action]]$params,X,a,cE,tE,tV,k))) # return vector of consumed taxa
+     },X,a,cE,tE,tV,k,Consumption)
      Production<-as.vector(Production)
-     
-# Generate matrix of detrital accumulation (natural mortality) - rows(taxa) cols(taxa)
-#    note only detrital pools will have values > 0
 
 # Generate vector of import - X 
 
 # Generate vector of export - X
 
-     
+
+          
      # Vector of Mortality from consumption
      
-     
-     
-Nutrients<-1 # just for testing
-
-Xp1[a$Ph$Di$X] <- X[a$Ph$Di$X]*(tV$Ph$Di$Ji[k]*Nutrients)
-Xp1[a$Ph$Sm$X] <- X[a$Ph$Sm$X]*(tV$Ph$Sm$Ji[k]*Nutrients)
-
     ## Grazing
 #       G <- (a[9]*a[10]*x[2]^2)/(a[9] + a[10]*x[2]^2)
 #       wp <- max(w,0)

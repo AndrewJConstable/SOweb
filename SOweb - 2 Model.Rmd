@@ -101,9 +101,9 @@ where $\bar{J}$ is the primary productivity given temperature and the potentiall
   
 ### Detritus  
   
-Detritus is the waste pool of organic fragments originating from dead plankton and the waste from feeding of higher trophic levels, which is either from fragments from eating or faeces (non-assimilated material). This pool is distinguished from carcasses as it can be remineralised as nutrients for primary production or exported.  Carcasses, on the other hand, can be preyed on by the food web as carion or exported, both of which are described in the food web section below.  
+Detritus is the waste pool of organic fragments originating from dead plankton and the waste from feeding of higher trophic levels, which is either from fragments from eating or faeces (non-assimilated material). This pool is distinguished from carcasses as it can be remineralised as nutrients for primary production or exported.  Carcasses, on the other hand, can be preyed on by the food web as carion either in surface waters or in the benthic environment, both of which are described in the food web section below.  
 
-Two pools of detritus are included here: the mixed layer pool which contributes to the nutrient pool for primary production, and the deep pool which contributes to benthos and export/sequestration.  Importantly the stoichiometry of these pools need to be adjusted according to the stoichiometry of the contributions from different taxa, which is the critical component for this steady state system.  
+Three pools of detritus are included here: the mixed layer pool which contributes to the nutrient pool for primary production, and the deep pool which contributes to benthos and export/sequestration.  Importantly the stoichiometry of these pools need to be adjusted according to the stoichiometry of the contributions from different taxa, which is a critical component for this steady state system.  For simplicity, three types of pools are distinguished - carbon, iron and silica.  
   
   
 $$
@@ -153,15 +153,24 @@ The concentration of nutrients in CDW and Terrestrial Ice sources are considered
   
 Availability of the nutrients for primary production (bioavailability) may need to be factored into this model but, at present, is regarded as a constant for macronutrients.   
   
-### Regeneration/remineralisation  
+### Remineralisation/dissolution  
   
-Regeneration and remineralisation of bioavailable nutrients includes a proportion of the detrital pool becoming available, remineralisation of dead phytoplankton and excretion from animals. Thus,  
+Remineralisation/dissolution of bioavailable nutrients includes a proportion of the detrital pool becoming available, including remineralisation of dead phytoplankton, and excretion from animals. Thus,  
   
 $$
 r=\mu_dD'+\sum_j{\gamma_{2,j}B_j}+\sum_p{\gamma_{3p}\mu_pP_p}
 $$
   
 where P is primary production, D' is the accumulated detritus during the year and $\mu$ are coefficients for the proportion of the pool made bioavailable. ???? is the primary production mortality useful here or should it just go to detritus.???
+
+Remineralisation of iron accompanies remineralisation of carbon from detritus through a dissolved organic state and finally to a bio-available state.  This two step process is modelled as a single step by combining the rates of the respective steps, noting that the rate is temperature dependent.  The formulatino of Hauck et al (2013) is used with the Arhenious equation, $f_T$, substituted for the approximation used for primary production.
+
+$$
+dFe_N=\rho_{POC}f_T.\rho_{DOC}f_TFe_{det}\\
+f_T=\rm{exp}(0.06T^\circ{}C)
+$$
+
+Iron also has a complex chemistry in this dissolved state which is not represented here (Hauck et al 2013).  A further complication for iron is scavenging of iron, which is adsoprtion of iron onto particles, making it unavailable to phytoplankton.  This is included in the model.
   
 ### Losses  
   

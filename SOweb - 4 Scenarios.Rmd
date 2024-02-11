@@ -16,6 +16,16 @@ library(bookdown)
 
 # Scenarios
 
+An important consideration for the steady state system is the time of year when the projection begins and the initial setting of the nutrient pools. 
+
+A projection needs to include all of the seasonal behaviours of the system.  The beginning of the projection needs to approximate the time when all of those behaviours are complete/ready to begin.  A good signal of that time is when nutrients in the mixed layer are at their most depleted in late summer and awaiting replenishment from an increase in depth of the mixed layer.  Primary production is at its minimum, only fueled by recycled nutrients, and the reproduction of species in the food web is complete. This time of depletion also coincides with the minimum extent of sea ice.  The autumnal replenishment of nutrients results in a spurt of primary production, the results of which are incorporated into sea ice during the autumn winter freeze and released in spring during the thaw.  This suggests that mid-February, the time of minimum sea ice, would be a suitable start of the projection period.
+
+[to be thought about some more]
+The initial settings of the nutrient pools set the bounds of the steady state system.  The initial abundance of bio-available nutrients are to be estimated along with the carbon pools.  The detrital pools, including carcases, are initiated based on initial abundances of the carbon pools and the functions for waste production, along with a deterministic hindcast of accumulation.  Pools in sea ice are set to zero.  The remaining pools are in the deep water, which are fixed from the respective global assessments.
+
+
+[this is not correct] the turnover of detritus to bio-available nutrients is around 60 to 100 days.  This means that feeding in the spring blooms will not be bio-available until mid summer-autumn.  
+
 
 ## Results
 
