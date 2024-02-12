@@ -123,36 +123,186 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
  ) # end nSiSI
 
  # Detritus ###################################################
+
+ # detritus Fe
+ ,dCaSI =  list(Name    = "Detritus-Carbon-Sea ice"
+                ,X0       = 20 # possible starting value
+                ,Attr    = list( Units = "g.m-2" # grams
+                ) # end attributes 
+                ,Consume = # 
+                  list(params = list(pool   = c("dCaM","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                     ,actions = list(dCaM = list(params = list(do_dCICEgt0 = TRUE)  # umole to umole
+                                                                 ,fn     = "fnN_changeSI")
+                                                     ,pDi = list(params = list(do_dCICEgt0 = TRUE)   # consume carbon then produce umole
+                                                                 ,fn     = "fnN_changeSI")  # end actions list
+                                                     ,pSm = list(params = list(do_dCICEgt0 = TRUE)    # consume carbon then produce umole
+                                                                 ,fn     = "fnN_changeSI") # end actions list
+                                     ) # end params list
+                                     ,fn     = "fnD_Consume")
+                       ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+                         list(params = list(pool   = c("dCaM","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                            ,actions = list(dCaM = list(params = NULL  # umole to umole
+                                                                        ,fn     = "fnD_produceSameUnits")
+                                                            ,pDi = list(params = NULL   # consume carbon then produce umole
+                                                                        ,fn     = "fnD_produceSameUnits") ) # end actions list
+                                                            ,pSm = list(params = NULL    # consume carbon then produce umole
+                                                                        ,fn     = "fnD_produceSameUnits") ) # end actions list
+                         ) # end params list
+                       ,fn     = "fnD_Produce"
+                  )
+ ) # end dCaSI
  
+ ,dCaM =  list(Name    = "Detritus-Carbon- ML"
+               ,X0       = 20 # possible starting value
+               ,Attr    = list( Units = "g.m-2" # grams
+                               ) # end attributes 
+               ,Consume = # 
+                 list(params = list(pool   = c("dCaSI","dCaD","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                    ,actions = list( dCaSI = list(params = list(do_dCICEgt0 = FALSE)  # umole to umole
+                                                                   ,fn     = "fnN_changeSI")
+                                                     ,dCaD  = list(params = list(do_dMLDgt0 = TRUE)  # umole to umole
+                                                                   ,fn     = "fnN_changeMLD")
+                                                     ,pDi = list(params = list(Ragg=0.015)   # aggregation rate Hauck et al 2013
+                                                                   ,fn     = "fnD_consumePhMortality")  # end actions list
+                                                     ,pSm = list(params = list(Ragg=0.015)   # aggregation rate Hauck et al 2013
+                                                                   ,fn     = "fnD_consumePhMortality") # end actions list
+                 ) # end params list
+               ,fn     = "fnD_Consume")
+ ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+   list(params = list(pool   = c("dCaSI","dCaD","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                      ,actions = list( dCaSI = list(params = NULL  # umole to umole
+                                                    ,fn     = "fnD_produceSameUnits")
+                                       ,dCaD  = list(params = NULL  # umole to umole
+                                                     ,fn     = "fnD_produceSameUnits")
+                                       ,pDi = list(params = NULL   
+                                                   ,fn     = "fnD_produceSameUnits")  
+                                       ,pSm = list(params = NULL    
+                                                   ,fn     = "fnD_produceSameUnits") 
+                      ) # end actions
+                      ) # end params list
+                ,fn     = "fnD_Produce") # end produce
+) # end dCaM
+
+,dCaD =  list(Name    = "Detritus-Carbon- Deep"
+              ,X0       = 20 # possible starting value
+              ,Attr    = list( Units = "g.m-2" # grams
+                             ) # end attributes 
+              ,Consume = # 
+                list(params = list(pool   = c("dCaM","dCaM","dCaS","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                   ,actions = list( dCaM  = list(params = list(do_dMLDgt0 = FALSE)  # umole to umole
+                                                                  ,fn     = "fnN_changeMLD")
+                                                    ,dCaM  = list(params = list(rSink = 5.0 )  # m d-1 
+                                                                  ,fn     = "fnD_sinkFromML")
+                                                    ,dCaS  = list(params = list(rSuspend = 0.0 )  # m d-1 
+                                                                  ,fn     = "fnD_resuspend")
+                                                    ,pDi = list(params = list(do_dMLDgt0 = FALSE)  # umole to umole
+                                                                ,fn     = "fnN_changeMLD")
+                                                    ,pSm = list(params = list(do_dMLDgt0 = FALSE)  # umole to umole
+                                                                ,fn     = "fnN_changeMLD")
+                                                    ) # end actions
+                                   ) # end params list
+                                   ,fn     = "fnD_Consume")
+                     ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+                       list(params = list(pool   = c("dCaSI","dCaD","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                          ,actions = list( dCaM = list(params = NULL  # umole to umole
+                                                                        ,fn     = "fnD_produceSameUnits")
+                                                           ,dCaM = list(params = NULL  # umole to umole
+                                                                        ,fn     = "fnD_produceSameUnits")
+                                                           ,dCaS  = list(params = NULL  # umole to umole
+                                                                         ,fn     = "fnD_produceSameUnits")
+                                                           ,pDi = list(params = NULL   
+                                                                       ,fn     = "fnD_produceSameUnits")  
+                                                           ,pSm = list(params = NULL    
+                                                                       ,fn     = "fnD_produceSameUnits") 
+                                          ) # end actions
+                                          ) # end params list
+                            ,fn     = "fnD_Produce") # end produce
+                       ) # end dCaD
+                     
+,dCaS =  list(Name    = "Detritus-Carbon- Sediment"
+              ,X0       = 20 # possible starting value
+              ,Attr    = list( Units = "g.m-2" # grams
+              ) # end attributes 
+              ,Consume = # 
+                list(params = list(pool   = c("dCaD") # names of taxa being consumed - from names(a), repeat name if different functions
+                                   ,actions = list( dCaD  = list(params = list(rSink = 5.0 )  # m d-1 
+                                                                  ,fn     = "fnD_sinkFromDeep")
+                                                  ) # end actions
+                                 ) # end params list
+                ,fn     = "fnD_Consume")            
+              ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+                list(params = list(pool   = c("dCaD") # names of taxa being consumed - from names(a), repeat name if different functions
+                                   ,actions = list( dCaD  = list(params = NULL  # umole to umole
+                                                                  ,fn     = "fnD_produceSameUnits")
+                                                 ) # end actions
+                               ) # end params list
+                ,fn     = "fnD_Produce") # end produce
+) # end dCaD
+
+
+# Iron - note that iron from detritus emanating from plants and animals is produced from detrital carbon consumption.
+
+
+  
  # detritus Fe
 ,dFeSI =  list(Name    = "Detritus-Iron-Sea ice"
                 ,X0       = 20 # possible starting value
                 ,Attr    = list( Units = "umol.m-2" # micromole
                                  ,Which_C_ratio = "r_FeC"   # for origin of detritus
                                ) # end attributes 
-                ,Consume = # 
-                  list(params = list(pool   = c("dFeM","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                ,Consume = #  - note consume only includes direct transfer from pools of same type.  otherwise relying on carbon detrital pools for produciton
+                  list(params = list(pool   = c("dFeM") # names of taxa being consumed - from names(a), repeat name if different functions
                                      ,actions = list(dFeM = list(params = list(do_dCICEgt0 = TRUE)  # umole to umole
                                                                  ,fn     = "fnN_changeSI")
-                                                    ,pDi = list(params = list(do_dCICEgt0 = TRUE)   # consume carbon then produce umole
-                                                                 ,fn     = "fnN_changeSI")  # end actions list
-                                                    ,pSm = list(params = list(do_dCICEgt0 = TRUE)    # consume carbon then produce umole
-                                                                 ,fn     = "fnN_changeSI") # end actions list
-                                                       ) # end params list
-                  ,fn     = "fnD_Consume")
+                                                       ) # end actions
+                                     ) # end params list
+                  ,fn     = "fnD_Consume") # end consume
                 ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
                   list(params = list(pool   = c("dFeM","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
                                     ,actions = list(dFeM = list(params = NULL  # umole to umole
                                                                 ,fn     = "fnD_produceSameUnits")
-                                                   ,pDi = list(params = NULL   # consume carbon then produce umole
-                                                                ,fn     = "fnD_produceMoleFromCarbon") ) # end actions list
-                                                   ,pSm = list(params = NULL    # consume carbon then produce umole
-                                                                ,fn     = "fnD_produceMoleFromCarbon") ) # end actions list
+                                                   ,pDi = list(params = list(Cpool = "dCaSI")   # consume carbon then produce umole
+                                                                ,fn     = "fnD_produceMoleFromCarbonPool") # end actions list
+                                                   ,pSm = list(params = list(Cpool = "dCaSI")    # consume carbon then produce umole
+                                                                ,fn     = "fnD_produceMoleFromCarbonPool") 
+                                                 ) # end actions list
                                   ) # end params list
-                       ,fn     = "fnD_Produce"
-                  )
+                       ,fn     = "fnD_Produce") # end produce
  ) # end dFeSI
- 
+
+# ??????????????? here
+,dFeM =  list(Name    = "Detritus-Iron-Sea ice"
+               ,X0       = 20 # possible starting value
+               ,Attr    = list( Units = "umol.m-2" # micromole
+                                ,Which_C_ratio = "r_FeC"   # for origin of detritus
+               ) # end attributes 
+               ,Consume = # 
+                 list(params = list(pool   = c("nFeM","dFeSI","dFeD","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                    ,actions = list( nFeM  = list(params = list(CarbonScavengingPool = "dCaM")  # scavenging umole to umole
+                                                                  ,fn     = "fnD_consumeFeScavenge")
+                                                    ,dFeSI = list(params = list(do_dCICEgt0 = FALSE)  # umole to umole
+                                                                ,fn     = "fnN_changeSI")
+                                                    ,dFeD  = list(params = list(do_dMLDgt0 = TRUE)  # umole to umole
+                                                                  ,fn     = "fnN_changeMLD")
+                                                    #,pDi = list(params = NULL   # consume carbon then produce umole
+                                                                ,fn     = "fnD_consumePhMortality")  # end actions list
+                                                    #,pSm = list(params = NULL    # consume carbon then produce umole
+                                                                ,fn     = "fnD_consumePhMortality") # end actions list
+                                    ) # end params list
+                                    ,fn     = "fnD_Consume")
+                      ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+                        list(params = list(pool   = c("dFeM","pDi","pSm") # names of taxa being consumed - from names(a), repeat name if different functions
+                                           ,actions = list(dFeM = list(params = NULL  # umole to umole
+                                                                       ,fn     = "fnD_produceSameUnits")
+                                                           ,pDi = list(params = NULL   # consume carbon then produce umole
+                                                                       ,fn     = "fnD_produceMoleFromCarbon") ) # end actions list
+                                           ,pSm = list(params = NULL    # consume carbon then produce umole
+                                                       ,fn     = "fnD_produceMoleFromCarbon") ) # end actions list
+                        ) # end params list
+                      ,fn     = "fnD_Produce"
+                 )
+) # end dFeSI
+
 # Phytoplankton ###################################################
 
   ,pDi = list( Name    = "Phyto-diatom" 
@@ -203,8 +353,10 @@ cE<-list(Lat = eLat
          ,Si  = nSi_0                    # initial silicic acid concentration in deep water
          ,DepthMax = 2000                # maximum depth of deep stratum
          ,C_MoleToMass = 1/12            # Carbon mole to mass in 12 mole to 1 g carbon ((if kg then = 1/12000 etc))
-         ,C_MassToMole = 12      
-) # end eC
+         ,C_MassToMole = 12
+         ,Fe_scavenge = list(Rate = 0.0156*0.01    # ((mmol C m-3)-1 d-1) (Hauck et al 2013) x proportion of DFe which is free Fe (Smith et al 2022)
+                            ,FreePropDFe = 0.01    # (Smith et al 2022)
+                                      ) # end eC
 
 
 #    1.4. Input Environmental Data ####

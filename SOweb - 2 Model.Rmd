@@ -185,6 +185,9 @@ timing of sea ice retreat and expansion influences primary production through th
 Scavenging of iron  
 Export in overturning circulation  
   
+The dynamics of dissolved iron in the Southern Ocean has a number outstanding questions (Henley et al 2020).  An important component of these dynamics is the dissolution of iron from detritus combined with the adsorption (scavenging) of iron to particulates (Tagliabue et al 2019).  Scavenging only involves that part of the dissolved iron not attached to ligands, ie free iron.  Understanding the supply of ligands has become important for Southern Ocean biogeochemistry because, without them, little iron would be available for primary production; approximately 99% of dissolved iron is attached to ligands (Smith et al 2022). The rate of adsoprtion of free iron is dependent on the surface area of particulates available.  Hauck et al (2013) model scavenging as a rate of free iron  per detrital concentration per day.  While they model the evolution of free iron and ligand dynamics, the rate of scavenging is modelled here as a constant with approximately 0.01 dissolved iron being free for scavenging.  
+  
+  
 ### Stoichiometry and micronutrients  
   
   
