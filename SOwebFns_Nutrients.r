@@ -15,10 +15,10 @@ fnN_Consume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
                ,dCICE = tE$dCICE[tStep]
                ,Dissolve = tV$nDissolve[tStep,]
                ) # end depths
-  dPool<-sapply(sParams$pool,function(pool,Act,s,X,cE,vE){
+  dPool<-sapply(sParams$pool,function(pool,Act,s,X,a,cE,vE){
           return(do.call(Act[[pool]]$fn,list(pool,Act[[pool]]$params,s,X,a,cE,vE)))
           },sParams$actions,s,X,a,cE,vE)
-  res[sParams[[s]]$pool]<-as.vector(dPool)
+  res[sParams$pool]<-as.vector(dPool)
     return(res)
 } # end fnN_Consume
 
