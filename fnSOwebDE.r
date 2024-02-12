@@ -24,7 +24,10 @@ TargetArea <-"AOA"
 # 2. Input functions and data ####
 
 
-source("SOwebFns.r")
+source("SOwebFns_General.r")
+source("SOwebFns_Detritus.r")
+source("SOwebFns_Phytoplankton.r")
+source("SOwebFns_Nutrients.r")
 source("SOwebData.r")
 
 # 3. Subset Environmental Data ####
