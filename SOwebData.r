@@ -495,7 +495,21 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                               list(params = NULL # end list
                                   ,fn     = "fnPhProduceFe")
   ) # end pSm
-       ) # end a
+,zMort = list(Name    = "Mortality not included in production"
+              ,X0       = 0 # possible starting value
+              ,Attr    = list( Units = "m-2"
+                             ) # end attributes 
+              ,Consume = # 
+                list(params = list(pool   = c("pDi","pSm") # names of taxa being consumed - from names(a)
+                                   ,actions = list( pDi  = list(params = list(Rmort = 0.8/365 )  # d-1 
+                                                                 ,fn     = "fnGeneralMortality")
+                                                    ,pSm = list(params = list(Rmort = 0.8/365 )  # d-1 
+                                                                ,fn     = "fnGeneralMortality")
+                                   ) # end actions
+                ) # end params list
+                ,fn     = "fnD_Consume")
+             ) # end zMort  
+) # end a
 
 #    1.3. Constants for the environment
 

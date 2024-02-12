@@ -12,12 +12,21 @@ fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
   PhyConc<-X[s]*cE$C_MassToMole/MLD # convert mass to C mole conc
   poolConc<-sapply(sParams$pool,function(f,X,MLD){X[f]/MLD},X,MLD)
   names(poolConc)<-sParams$pool
+
   # determine nutrient uptake rates, take minimums & adjust J
+  
+     # i. assume abundant nutrients - calculate photosynthesis and assess nutrient requirements
   J<-tV[[s]]$Ji[tStep]*min(sapply(sParams$pool,function(f,FC,P){FC[f]/(FC[f]+P$k[P$pool%in%f])},poolConc,sParams),na.rm=TRUE)
-  J[is.na(J)]<-0
-  res[sParams$pool]<-sapply(sParams$pool,function(f,s,J,a,tV,PhyMoleC){
-    return(J*PhyMoleC*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
-  },s,J,a,tV,PhyConc*MLD)
+  J[is.na(J)]<-0 # a safeguard though not expected to be needed
+  NutReqd<-sapply(sParams$pool,function(f,s,J,a,tV,PhyMoleC){
+                return(J*PhyMoleC*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
+                },s,J,a,tV,PhyConc*MLD)
+  print(NutReqd)
+  PropUnderSupply<-min((X[sParams$pool]-NutReqd)/NutReqd)
+  print(PropUnderSupply)
+  if(PropUnderSupply<0) NutReqd<-NutReqd*(1+PropUnderSupply)
+  print(NutReqd)
+  res[sParams$pool]<-NutReqd
   return(res) # vector of amount of each pool consumed in units X
 } # end fnPhConsume
 
@@ -108,5 +117,8 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
   J
 }
 
+fnGeneralMortality<-function(pool,Params,s,X,a,cE,vE){
+  return(X[pool]*Params$Rmort)
+} # end fnGeneralMortality
 
 
