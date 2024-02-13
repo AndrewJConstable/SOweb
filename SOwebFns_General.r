@@ -4,7 +4,32 @@
 # December 2023
 # last update 20240206
 
-## RHS of NPZD system (from Melbourne-Thomas et al 2015) ####
+
+# estimator ####
+
+# P/B ratio is standard deviation of lognormal distribution with mode=1 
+fnFindSigma<-function(SD){
+  fHolling<-function(a,x){x^a[1]/(a[2]^a[1]+x^a[1])}
+  guess<-fHolling(c(1.683762,1.637206),SD) # from exploration of relationship
+  fnF<-function(v,SD){return((SD-exp(1.5*v)*sqrt(exp(v)-1))^2)}
+  v<-nlm(fnF,guess,SD)
+  return(sqrt(v$estimate))}
+
+
+fnSOweb_estimator<-function(X){ # estimator is over a one year period
+  # some useful blogs
+#  https://www.r-bloggers.com/2019/08/maximum-likelihood-estimation-from-scratch/
+#  https://www.r-bloggers.com/2013/08/fitting-a-model-by-maximum-likelihood/
+  
+  # standardise all X as relative biomass units i.e. Xprime=1
+
+  # have a vector list in vE which is mu and sigma for each taxon given PB ratio
+  
+   d<-dlnorm(X1oX0,tV$est$mu[s],tV$est$sigma[s]) # probability density for a given X1/X0 i.e. mode=1
+
+     return(-sum(log(d))) # return the negative log likelihood
+   
+      } # end fnSOweb_estimator
 
 fnSOwebDE <- function(t # vector element to read  (not used by JMT)
                       ,X # X vector - NPZD

@@ -465,7 +465,8 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                              ,WW_C  = NULL     # g.WetWeight per carbon (g.carbon)-1
                              ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
                              ,r_SiC = 0.8     # mole Si (mole C)-1 Hauck
-                             ) # end Attributes
+                             ,PBratio = 3.0
+              ) # end Attributes
               ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
                               list(params = list(pool   = c("nFeM","nSiM") # names of taxa being consumed - from names(a)
                                                 ,MuMax = 1.44 # from Jeffery
@@ -483,6 +484,7 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                                ,WtC   = NULL     # g.Carbon individual
                                ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
                                ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                               ,PBratio = 3.0
                                ) # end Attributes
                ,Consume = # for phytoplankton, consumption requires an estimate of production (the growth function below simply requires a conversion to carbon)
                  list(params = list(pool   = c("nFeM") # names of taxa being consumed - from names(a)
