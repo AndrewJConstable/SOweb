@@ -479,7 +479,7 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                                   ,fn     = "fnPhProduceFe")
               ) # end pDi 
   ,pSm = list( Name  = "Phyto-small"
-                  ,X0     = 20 # possible starting value 
+                  ,X0     = 300 # possible starting value 
                   ,Attr   = list(Units = "g.m-2" 
                                ,WtC   = NULL     # g.Carbon individual
                                ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
@@ -503,9 +503,9 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                              ) # end attributes 
               ,Consume = # 
                 list(params = list(pool   = c("pDi","pSm") # names of taxa being consumed - from names(a)
-                                   ,actions = list( pDi  = list(params = list(Rmort = 0.8/365 )  # d-1 
+                                   ,actions = list( pDi  = list(params = list(Rmort = 0.99/365 )  # d-1 
                                                                  ,fn     = "fnGeneralMortality")
-                                                    ,pSm = list(params = list(Rmort = 0.8/365 )  # d-1 
+                                                    ,pSm = list(params = list(Rmort = 0.99/365 )  # d-1 
                                                                 ,fn     = "fnGeneralMortality")
                                    ) # end actions
                 ) # end params list

@@ -20,7 +20,7 @@ fnSOweb_estimator<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a 
   # some useful blogs
 #  https://www.r-bloggers.com/2019/08/maximum-likelihood-estimation-from-scratch/
 #  https://www.r-bloggers.com/2013/08/fitting-a-model-by-maximum-likelihood/
-
+print(eX)
   EstWhichX<-!is.na(tV$est$mu)
   
   X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
@@ -28,7 +28,6 @@ fnSOweb_estimator<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a 
   X[,1]<-X0
   X[EstWhichX,1]<-eX
   for(k in 2:(nTimeSteps+1)) { # 2:n is based on the matrix of state variables
-    cat("Day ",(k-1),"\n",sep="")
     X[,k]<-X[,k-1]+fnSOwebDE((k-1) # vector element to read  (not used by JMT)
                              ,X[,(k-1)] # X vector
                              ,a   # parameters

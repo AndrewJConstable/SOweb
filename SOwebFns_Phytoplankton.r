@@ -21,11 +21,8 @@ fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
   NutReqd<-sapply(sParams$pool,function(f,s,J,a,tV,PhyMoleC){
                 return(J*PhyMoleC*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
                 },s,J,a,tV,PhyConc*MLD)
-  print(NutReqd)
   PropUnderSupply<-min((X[sParams$pool]-NutReqd)/NutReqd)
-  print(PropUnderSupply)
   if(PropUnderSupply<0) NutReqd<-NutReqd*(1+PropUnderSupply)
-  print(NutReqd)
   res[sParams$pool]<-NutReqd
   return(res) # vector of amount of each pool consumed in units X
 } # end fnPhConsume
