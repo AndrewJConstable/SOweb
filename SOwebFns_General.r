@@ -16,20 +16,66 @@ fnFindSigma<-function(SD){
   return(sqrt(v$estimate))}
 
 
-fnSOweb_estimator<-function(X){ # estimator is over a one year period
+fnSOweb_estimator<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a one year period
   # some useful blogs
 #  https://www.r-bloggers.com/2019/08/maximum-likelihood-estimation-from-scratch/
 #  https://www.r-bloggers.com/2013/08/fitting-a-model-by-maximum-likelihood/
-  
-  # standardise all X as relative biomass units i.e. Xprime=1
 
-  # have a vector list in vE which is mu and sigma for each taxon given PB ratio
+  EstWhichX<-!is.na(tV$est$mu)
   
-   d<-dlnorm(X1oX0,tV$est$mu[s],tV$est$sigma[s]) # probability density for a given X1/X0 i.e. mode=1
+  X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
+  
+  X[,1]<-X0
+  X[EstWhichX,1]<-eX
+  for(k in 2:(nTimeSteps+1)) { # 2:n is based on the matrix of state variables
+    cat("Day ",(k-1),"\n",sep="")
+    X[,k]<-X[,k-1]+fnSOwebDE((k-1) # vector element to read  (not used by JMT)
+                             ,X[,(k-1)] # X vector
+                             ,a   # parameters
+                             ,cE  # environmental constants
+                             ,tE  # time step vectors of environmental variables
+                             ,tV) # time step vectors for use as needed in integration
+  } # end do loop
+
+  # divide last values by first values Bend/B0
+  Xrel<-X[EstWhichX,(nTimeSteps+1)]/X[EstWhichX,1]
+  Mu<-tV$est$mu[EstWhichX]
+  Sigma<-tV$est$sigma[EstWhichX]
+  
+  # use vector list in vE which is mu and sigma for each taxon given PB ratio
+  d<-sapply(seq(1,length(Xrel),1),function(x,Xrel,Mu,Sigma){
+    return(dlnorm(Xrel,Mu,Sigma)) # probability density for a given X1/X0 i.e. mode=1
+    },Xrel,Mu,Sigma)
 
      return(-sum(log(d))) # return the negative log likelihood
    
       } # end fnSOweb_estimator
+
+fnSOweb_project<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a one year period
+  # some useful blogs
+  #  https://www.r-bloggers.com/2019/08/maximum-likelihood-estimation-from-scratch/
+  #  https://www.r-bloggers.com/2013/08/fitting-a-model-by-maximum-likelihood/
+  
+  EstWhichX<-!is.na(tV$est$mu)
+  
+  X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
+  
+  X[,1]<-X0
+  X[EstWhichX,1]<-eX
+  for(k in 2:(nTimeSteps+1)) { # 2:n is based on the matrix of state variables
+    cat("Day ",(k-1),"\n",sep="")
+    X[,k]<-X[,k-1]+fnSOwebDE((k-1) # vector element to read  (not used by JMT)
+                             ,X[,(k-1)] # X vector
+                             ,a   # parameters
+                             ,cE  # environmental constants
+                             ,tE  # time step vectors of environmental variables
+                             ,tV) # time step vectors for use as needed in integration
+  } # end do loop
+  
+return(X) # return the negative log likelihood
+  
+} # end fnSOweb_project
+
 
 fnSOwebDE <- function(t # vector element to read  (not used by JMT)
                       ,X # X vector - NPZD
