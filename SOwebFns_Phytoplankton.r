@@ -22,7 +22,7 @@ fnPhConsume<-function(s,sParams,X,a,cE,tE,tV,tStep){ # primary production
                 return(J*PhyMoleC*tV$nRatio[[a[[f]]$Attr$Which_C_ratio]][[s]])
                 },s,J,a,tV,PhyConc*MLD)
   PropUnderSupply<-min((X[sParams$pool]-NutReqd)/NutReqd)
-  if(PropUnderSupply<0) NutReqd<-NutReqd*(1+PropUnderSupply)
+  if(PropUnderSupply<0) NutReqd<-NutReqd*(1+max(PropUnderSupply,-1))
   res[sParams$pool]<-NutReqd
   return(res) # vector of amount of each pool consumed in units X
 } # end fnPhConsume
@@ -64,7 +64,7 @@ EvansParslow <- function( # JMT Equation 5 Average Growth Rate given latitude, d
   ,a      # biological parameters
   ,cE     # environmental constants
   ,tE     # environmental time series
-  ,PAR    # while PAR is present as a list if cE, only one is parsed.  The one parsed is either with or without sea ice present.
+  ,PAR    # while PAR is present as a list in cE, only one is parsed.  The one parsed is either with or without sea ice present.
   ,Jmax   # list of timestep vectors of Jmax for different phytoplankton groups  
                  ) { # start function
 #  using the following data:

@@ -24,6 +24,14 @@ print(eX)
   EstWhichX<-!is.na(tV$est$mu)
   
   X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
+
+# modify X0 nutrients and detritus pools based on cE$Conc_t0  
+  whichL<-which(cE$Conc_t0_layer=="M")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] )*tE$MLD[1]
+  whichL<-which(cE$Conc_t0_layer=="D")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] )*(cE$DepthMax-tE$MLD[1])
+  whichL<-which(cE$Conc_t0_layer=="SI")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] ) # assuming sea ice is 1m thick
   
   X[,1]<-X0
   X[EstWhichX,1]<-eX
@@ -58,11 +66,21 @@ fnSOweb_project<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a on
   EstWhichX<-!is.na(tV$est$mu)
   
   X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
+
+    # modify X0 nutrients and detritus pools based on cE$Conc_t0  
+  whichL<-which(cE$Conc_t0_layer=="M")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] )*tE$MLD[1]
+  whichL<-which(cE$Conc_t0_layer=="D")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] )*(cE$DepthMax-tE$MLD[1])
+  whichL<-which(cE$Conc_t0_layer=="SI")
+  X0[names(cE$Conc_t0_layer)[whichL]]<-unlist( cE$Conc_t0[names(cE$Conc_t0_layer)[whichL]] ) # assuming sea ice is 1m thick
+  
   
   X[,1]<-X0
   X[EstWhichX,1]<-eX
   for(k in 2:(nTimeSteps+1)) { # 2:n is based on the matrix of state variables
     cat("Day ",(k-1),"\n",sep="")
+    
     X[,k]<-X[,k-1]+fnSOwebDE((k-1) # vector element to read  (not used by JMT)
                              ,X[,(k-1)] # X vector
                              ,a   # parameters
@@ -92,6 +110,17 @@ fnSOwebDE <- function(t # vector element to read  (not used by JMT)
       return(do.call(a[[s]][[Action]]$fn,list(s,a[[s]][[Action]]$params,X,a,cE,tE,tV,t))) # return vector of consumed taxa
   },X,a,cE,tE,tV,t)
   Consumption<-as.matrix(Consumption)
+  
+# crude check and correction for over consumption of a pool
+#  
+#  checkConsumption<-apply(Consumption,1,sum,na.rm=TRUE)
+#  XoverC<-(checkConsumption-X)>0
+#  if(sum(XoverC)>0){
+#    adjust<-which(XoverC)
+#    for(i in c(1:length(adjust))) {
+#      Consumption[adjust[i],]<-Consumption[adjust[i],]*(1-XoverC[adjust[i]]/X[adjust[i]])
+#      }
+#    }  
   
   # Vector of Production from consumption
   

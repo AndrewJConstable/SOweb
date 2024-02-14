@@ -39,11 +39,11 @@ $\quad$Area & $A$ & $km^2$ \\
 $\quad$Depth & $Z$ & $m$ \\
 \\
 \textit{State Variables} & &\\
-$\quad$Detritus & $D$ & $tC.km^{-3}$ \\
-$\quad$Macronutrients (Silicate) & $Si$ & $mmol.m^{-3}$ \\
-$\quad$Micronutrients (dissolved Iron) & $dFe$ & $\mu{mol}.m^{-3}$ \\
-$\quad$Phytoplankton & $P$ & $tC.km^{-2}$ \\
-$\quad$Higher trophic levels & $B$ & $tC.km^{-2}$ \\
+$\quad$Detritus & $D$ & $gC.m^{-2}$ \\
+$\quad$Macronutrients (Silicate) & $Si$ & $mmol.m^{-2}$ \\
+$\quad$Micronutrients (dissolved Iron) & $dFe$ & $\mu{mol}.m^{-2}$ \\
+$\quad$Phytoplankton & $P$ & $gC.m^{-2}$ \\
+$\quad$Higher trophic levels & $B$ & $gC.m^{-2}$ \\
 \\
 \textit{Environmental Forcing Variables} & &\\
 $\quad$Mixed layer depth                                & $MLD$             & $m$          \\
