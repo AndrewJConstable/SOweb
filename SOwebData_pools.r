@@ -121,7 +121,7 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                       ,fn     = "fnN_Produce")
  ) # end nSiSI
 
- # detritus carbon
+# Detrital carbon ####
  ,dCaSI =  list(Name    = "Detritus-Carbon-Sea ice"
                 ,X0       = 0 # possible starting value
                 ,Attr    = list( Units = "g.m-2" # grams : 1.2E4 mmole.m-2
@@ -239,11 +239,9 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
 ) # end dCaD
 
 
-# Iron - note that iron from detritus emanating from plants and animals is produced from detrital carbon consumption.
+# Detrital Iron ####
+# - note that iron from detritus emanating from plants and animals is produced from detrital carbon consumption.
 
-
-  
- # detritus Fe
 ,dFeSI =  list(Name    = "Detritus-Iron-Sea ice"
                 ,X0       = 0 # possible starting value
                 ,Attr    = list( Units = "umol.m-2" # micromole
@@ -360,7 +358,7 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                 ,fn     = "fnD_Produce") # end produce
 ) # end dFeS
 
-# Silica ##########################################################
+# Detrital Silica ####
 # - note that Si from detritus emanating from plants and animals is produced from detrital carbon consumption.
 
 ,dSiSI =  list(Name    = "Detritus-Silica-Sea ice"
@@ -466,7 +464,7 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
 ) # end dSiS
 
 
-# Phytoplankton ###################################################
+# Phytoplankton ####
 
   ,pDi = list( Name    = "Phyto-diatom" 
               ,X0       = 100 # possible starting value
@@ -507,7 +505,54 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                               list(params = NULL # end list
                                   ,fn     = "fnPhProduceFe")
   ) # end pSm
-,zMort = list(Name    = "Mortality not included in production"
+
+# Zooplankton ####
+,zMi = list( Name  = "Zooplankton-micro"
+             ,X0     = 1 # possible starting value 
+             ,Attr   = list(Units = "g.m-2" 
+                            ,WtC   = NULL     # g.Carbon individual
+                            ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
+                            ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
+                            ,PBratio = 2.0
+                            ,Depth = c(0,300) # Depth range - min, max for determining overlap with consumers
+             ) # end Attributes
+             ,Consume = # 
+               list(params = list(pool   = c("pSm") # names of taxa being consumed - from names(a)
+                                  ,actions = list(  pSm  = list(params = list( I    = NULL   # ingestion rate 
+                                                                              ,vHat = NULL)  # vulnerability
+                                                                 ,fn     = "fnB_consumeHolling2")
+                                  )  # end actions
+               ) # end params list
+               ,fn     = "fnD_Consume")
+             ,Produce  =  # transfer consumption (for detritus need to use mole to mole and carbon to mole functions)
+               list(params = list(pool   = c("dSiM","dSiS","pDi") # names of taxa being consumed - from names(a)
+                                  ,actions = list(pSm = list(params = list( A    = 1 # assimilation rate: (1-A) goes to detritus 
+                                                                           ,conv = 1 # conversion efficiency with remainder not going to detritus
+                                                                           ) # end params
+                                                              ,fn     = "fnH_produceB")
+                                  ) # end actions list
+               ) # end params list
+               ,fn     = "fnD_Produce") # end produce
+) # end zMi
+
+# Loss pools ####
+,lRes = list(Name    = "Respiration"
+              ,X0       = 0 # possible starting value
+              ,Attr    = list( Units = "g.m-2"
+              ) # end attributes 
+              ,Consume = # 
+                list(params = list(pool   = c("pDi","pSm","zMi") # names of taxa being consumed - from names(a)
+                                   ,actions = list( pDi  = list(params = list(respCoeff = NULL )  
+                                                                ,fn     = "fnGeneralRespire")
+                                                    ,pSm = list(params = list(respCoeff = NULL )  
+                                                                ,fn     = "fnGeneralRespire")
+                                                    ,zMi = list(params = list(respCoeff = NULL )  
+                                                                ,fn     = "fnGeneralRespire")
+                                   ) # end actions
+                ) # end params list
+                ,fn     = "fnL_Consume")
+) # end lRes  
+,lMort = list(Name    = "Mortality not included in production"
               ,X0       = 0 # possible starting value
               ,Attr    = list( Units = "d-1"
                              ) # end attributes 
@@ -519,7 +564,9 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                                                                 ,fn     = "fnGeneralMortality")
                                    ) # end actions
                 ) # end params list
-                ,fn     = "fnD_Consume")
-             ) # end zMort  
+                ,fn     = "fnL_Consume")
+             ) # end lMort  
+
+# end A list ####
 ) # end a
 

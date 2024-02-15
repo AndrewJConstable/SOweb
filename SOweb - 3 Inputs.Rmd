@@ -723,36 +723,27 @@ print(PreyAvail)
 ```
 
   
-### Maximum Standing Stock Ingestion Rate  
+### Per predator biomass ingestion rate of prey  
   
-The vector outputs of Ecopath, production to biomass and consumption to biomass, can be used to estimate $\tilde{I}$ by numerically solving two related sets of equations, noting that the complete predator-prey matrix of maximum standing stock ingestion rates will be imperfectly fit because Ecopath models are themselves not perfect balanced models.
+Numerical methods can be used to estimate a predator(j)-prey(i) matrix of maximum per-predator-biomass ingestion rates, $I_{i,j}$ from outputs of Ecopath - production to biomass and consumption to biomass ratios combined with the diet matrix - based on the vulnerability and functional relationships to be used in the steady-state model. 
 
-Equation 1. Predator Diet
+Using terminology for Ecopath inputs and outputs, the equation to be solved is based on the predator-prey consumption matrix such that the total consumption of a prey, i, across all predators, $\sum_j$, is equal to its production discounted by the ecotrophic efficiency:
 
-Consumption of prey using the Ecopath parameters is  
+$$
+\sum_j \left[ {d_{i,j} \left( \frac{Q_j}{B_j} \right) B_j} \right]=EE_i\left( \frac{P_i}{B_i} \right) B_i
+$$
+In a steady-state, the consumption by predators can be represented by the model equations, such that:
 
-\begin{equation} \label{eq:QprimeEcopathDiet}
-Q_{i,j} = d_{i,j} \left( \frac{Q_j}{B_j} \right) B_j
-\end{equation}
+$$
+\left( \frac{Q_j}{B_j} \right) B_j = B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j} \right]
+$$
+In order to give equal weight to all pools, the following equation is minimised:
 
-where the proportion in the diet, d, and predator biomass are input to Ecopath.
+$$
+SS(\vec{I})=\sum_i \left( 1 - \frac{\sum_{j} d_{i,j} B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j}  \right]}
+                          {EE_i\left( \frac{P_i}{B_i} \right) B_i}\right)^2
 
-Equation 2. Predation on a prey type  
-   
-Mortality of prey through consumption is  
-  
-\begin{equation} \label{eq:sumQprimePreyEcopath}
-\sum_{i}Q'_{i,j} = EE_i\left( \frac{P_i}{B_i} \right) B_i - Y_i - E_i - BA_i
-\end{equation}
-
-where EE is the ecotrophic efficiency (the proportion of production used in the food web), Y is the fishing yield, E is the emigration out of the system and BA is the biomass accumulation.  Both E and BA can be used to help balance the model but, if greater than zero, imply a lack of internal equilibrium.
-  
-The matrix of maximum standing stock ingestion rates is solved by minimising the sums of squares of the combined equations:
-
-\begin{equation} \label{eq:solveIngestionSS}
-SS=\sum_i \left( 1 - \frac{\sum_{j} Q_{i,j}}
-                          {\sum_{j}Q'_{i,j}}\right)^2
-\end{equation}
+$$
 
 ```{r foraging, echo=TRUE, eval=FALSE}
 # determine max ingestion rates using numerical methods
