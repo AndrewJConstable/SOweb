@@ -21,6 +21,9 @@ fnSOweb_estimator<-function(eX,X0,nTimeSteps,a,cE,tE,tV){ # estimator is over a 
 #  https://www.r-bloggers.com/2019/08/maximum-likelihood-estimation-from-scratch/
 #  https://www.r-bloggers.com/2013/08/fitting-a-model-by-maximum-likelihood/
 print(eX)
+  # if any of eX are negative then return Inf
+  
+if(sum(eX<=0)>0){ res<-Inf} else { # all positive
   EstWhichX<-!is.na(tV$est$mu)
   
   X <- matrix(NA,length(X0),(nTimeSteps+1),dimnames=list(names(X0),NULL))
@@ -53,8 +56,10 @@ print(eX)
   d<-sapply(seq(1,length(Xrel),1),function(x,Xrel,Mu,Sigma){
     return(dlnorm(Xrel,Mu,Sigma)) # probability density for a given X1/X0 i.e. mode=1
     },Xrel,Mu,Sigma)
+  res<--sum(log(d))
+} # if all eX positive
 
-     return(-sum(log(d))) # return the negative log likelihood
+     return(res) # return the negative log likelihood
    
       } # end fnSOweb_estimator
 
@@ -111,18 +116,35 @@ fnSOwebDE <- function(t # vector element to read  (not used by JMT)
   },X,a,cE,tE,tV,t)
   Consumption<-as.matrix(Consumption)
   
-# crude check and correction for over consumption of a pool
-#  
-#  checkConsumption<-apply(Consumption,1,sum,na.rm=TRUE)
-#  XoverC<-(checkConsumption-X)>0
-#  if(sum(XoverC)>0){
-#    adjust<-which(XoverC)
-#    for(i in c(1:length(adjust))) {
-#      Consumption[adjust[i],]<-Consumption[adjust[i],]*(1-XoverC[adjust[i]]/X[adjust[i]])
-#      }
-#    }  
-  
-  # Vector of Production from consumption
+# crude check and correction for over consumption of a pool ####
+#   if iron is overconsumed then reduction in iron also should be applied to silica #
+#   if silica is overconsumed then reduction in silica must be applied to silica consuming phytoplankton
+#   for higher trophic levels - need to think this through
+
+  #???????????? hardwired for the moment 
+  checkC<-apply(Consumption,1,sum,na.rm=TRUE)
+  XoverC<-checkC>X
+  count<-0
+  while(sum(XoverC)>0){
+    count<-count+1
+    pools<-names(which(XoverC)) # pools that have been overconsumed
+    if(sum(pools=="nSiM")>0){ # adjust silicate first as need to reduce primary production 
+        Adj<-X["nSiM"]/checkC["nSiM"]
+        Consumption["nFeM","pDi"]<-Consumption["nFeM","pDi"]*Adj
+        Consumption["nSiM",]<-Consumption["nSiM",]*Adj
+    } else # Silicate check 
+      if(sum(pools=="nFeM")>0){ # adjust iron second and adjust silicate consumption in diatoms 
+        Adj<-X["nFeM"]/checkC["nFeM"]
+        Consumption["nSiM","pDi"]<-Consumption["nSiM","pDi"]*Adj
+        Consumption["nFeM",]<-Consumption["nFeM",]*Adj
+      } else {
+        for(i in c(1:length(pools))) Consumption[pools[i],]<-Consumption[pools[i],]*X[pools[i]]/checkC[pools[i]]
+        }
+    checkC<-apply(Consumption,1,sum,na.rm=TRUE)
+    XoverC<-checkC>X
+  }  
+
+    # Vector of Production from consumption
   
   Action<-"Produce"
   Production<-sapply(names(X),function(s,X,a,cE,tE,tV,k,C){
