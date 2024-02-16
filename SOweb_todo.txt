@@ -1,7 +1,10 @@
 SOweb ToDo
 
-* write routine to generate vulnerabilities, vHat, of resource to consumer - rows[resource] cols[consumer] - save in cE
-take account of probability of encounter etc.
+# generate parameters for Holling functional response and add to tV
+# strip depth ranges from pool data and generate overlap
+# strip ingestion rate and selectivity from pool data
+# combine availability * selectivtiy = vulnerability
+
 
 
 

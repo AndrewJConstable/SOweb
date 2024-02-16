@@ -24,8 +24,9 @@ fnH_Produce<-function(s,C,sParams,X,a,cE,tE,tV,tStep){
 
 # 2. Higher Trophic pools supporting functions ####
 
-fnH_consumeHolling2<-function(pool,Params,s,X,a,cE,vE){
-
-    return(res)
-}
+fnH_consumeHolling2_KY<-function(pool,Params,s,X,a,cE,vE){ # after Koen-Alonso & Yodzis, 2005
+   # s is the consumer, pool is the resource
+  return((vE$H_Ingest$I[s,pool]*vE$H_Ingest$v[s,pool]*X[pool])/ # numerator
+          (vE$H_Ingest$I[s,pool]+sum(vE$H_Ingest$v[,s]*X)))     # denominator
+} # end fnH_consumeHolling2_KY
 

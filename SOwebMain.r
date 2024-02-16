@@ -187,6 +187,15 @@ ratio_SiC<-sapply(names(a) # read all silica to carbon ratios for converting car
 sigmaPB<-sapply(names(a) # read all P/B ratios and estimate sigma for each taxon in estimation vector (not have PB means not used)
                 ,function(s,a){if(is.null(a[[s]]$Attr$PBratio)) NA else fnFindSigma(a[[s]]$Attr$PBratio)},a)
 
+
+# generate parameters for Holling functional response and add to tV
+# strip depth ranges from pool data and generate overlap
+# strip ingestion rate and selectivity from pool data
+# combine availability * selectivtiy = vulnerability
+
+H_Ingest<-list(I = NULL  # maximum ingestion rate matrix - cols[consumer] rows[resource]
+               ,v = NULL) # vulnerability matrix cols[consumer] rows[resource] - availability * selectivity
+
 tV <-list(pDi = list(Jmax = Jmax[["pDi"]]
                     ,Ji = Ji[["pDi"]]
                     ) # end pDi list

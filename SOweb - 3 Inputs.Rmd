@@ -729,21 +729,24 @@ Numerical methods can be used to estimate a predator(j)-prey(i) matrix of maximu
 
 Using terminology for Ecopath inputs and outputs, the equation to be solved is based on the predator-prey consumption matrix such that the total consumption of a prey, i, across all predators, $\sum_j$, is equal to its production discounted by the ecotrophic efficiency:
 
-$$
+\begin{equation} \label{eq:ConsumptionWithDiet}
 \sum_j \left[ {d_{i,j} \left( \frac{Q_j}{B_j} \right) B_j} \right]=EE_i\left( \frac{P_i}{B_i} \right) B_i
-$$
+\end{equation}
+
 In a steady-state, the consumption by predators can be represented by the model equations, such that:
 
-$$
+\begin{equation} \label{eq:ConsumptionInSteadyState}
 \left( \frac{Q_j}{B_j} \right) B_j = B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j} \right]
-$$
+\end{equation}
+
 In order to give equal weight to all pools, the following equation is minimised:
 
-$$
+\begin{equation} \label{eq:IngestMinimisation}
 SS(\vec{I})=\sum_i \left( 1 - \frac{\sum_{j} d_{i,j} B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j}  \right]}
                           {EE_i\left( \frac{P_i}{B_i} \right) B_i}\right)^2
+\end{equation}
 
-$$
+
 
 ```{r foraging, echo=TRUE, eval=FALSE}
 # determine max ingestion rates using numerical methods

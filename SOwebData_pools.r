@@ -514,13 +514,13 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                             ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
                             ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
                             ,PBratio = 2.0
-                            ,Depth = c(0,300) # Depth range - min, max for determining overlap with consumers
+                            ,Depth = c(0,-300) # Depth range - min, max for determining overlap with consumers
              ) # end Attributes
              ,Consume = # 
                list(params = list(pool   = c("pSm") # names of taxa being consumed - from names(a)
-                                  ,actions = list(  pSm  = list(params = list( I    = NULL   # ingestion rate 
-                                                                              ,vHat = NULL)  # vulnerability
-                                                                 ,fn     = "fnB_consumeHolling2")
+                                  ,actions = list(  pSm  = list(params = list( I    = NULL   # maximum ingestion rate 
+                                                                              ,s = NULL)  # selectivity - probability of consuming resource given encounter
+                                                                 ,fn     = "fnH_consumeHolling2_KY")
                                   )  # end actions
                ) # end params list
                ,fn     = "fnD_Consume")
