@@ -514,10 +514,12 @@ a<-list( # list of taxa with their parameters and functions as needed (first let
                             ,WW_C  = NULL     # g.WetWeight (g.carbon)-1
                             ,r_FeC = 0.005   # micromole Fe (millimole C)-1 Hauck
                             ,PBratio = 2.0
-                            ,Depth = c(0,-300) # Depth range - min, max for determining overlap with consumers
+                            ,Foraging = list(params = c(0,-300) # Depth range - min, max for determining overlap with consumers
+                                             ,fn    =  "fnH_forageUniform")
              ) # end Attributes
              ,Consume = # 
                list(params = list(pool   = c("pSm") # names of taxa being consumed - from names(a)
+                                  ,foodSel = {res<-c(1); names(res)<-c("pSm");res} # selectivity of each resource type if encountered
                                   ,actions = list(  pSm  = list(params = list( I    = NULL   # maximum ingestion rate 
                                                                               ,s = NULL)  # selectivity - probability of consuming resource given encounter
                                                                  ,fn     = "fnH_consumeHolling2_KY")
