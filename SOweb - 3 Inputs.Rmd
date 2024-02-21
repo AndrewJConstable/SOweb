@@ -688,20 +688,11 @@ Availability of prey to predators is different from the selectivity function, wh
 Availability determined by overlap in pelagic depth strata is the product of the probabilities of predator and prey in the area of overlap, such that
 
 $$
-A_{i,j}=Pr[Overlap_{deep}\leq Depth_j \leq Overlap_{shallow}]*Pr[Overlap_{deep}\leq Depth_i \leq Overlap_{shallow}]
+A_{i,j}=\int_{seafloor}^{surface} \textrm{p}(B_i,z)\textrm{p}(B_j,z) dz
 $$
-where
 
-$$
-Overlap_{shallow}=min[Depth_{i,shallow},Depth_{j,shallow}]\\
-Overlap_{deep}=max[Depth_{i,deep},Depth_{j,deep}]
-$$
-  
-I assume a uniform probability distributions of predators and prey within their depth ranges and use first letters for variables and subscripts to give the following estimates of overlap of predators, j, with prey, i:
+For the present, I assume a uniform probability distributions of predators and prey within their depth ranges.
 
-$$
-A_{i,j}=\frac{(O_s-O_d)^2}{(D_{i,s}-D_{i,d})(D_{j,s}-D_{j,d})}
-$$
 
 ```{r,echo=TRUE,eval=FALSE}
 
@@ -748,33 +739,58 @@ SS(\vec{I})=\sum_i \left( 1 - \frac{\sum_{j} d_{i,j} B_j\sum_i \left[ g \left(\v
 
 
 
+
+```{r echo=TRUE, eval=FALSE}
+
+root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
+
+fnReadEcopath<-function(root,fname){
+  names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
+  params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
+  diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
+  avail<-read.csv(paste(root,fname,"_availability.csv",sep=""),header=FALSE)
+  return(list(names=names,params=params,diet=diet,avail=avail))
+     }
+
+McCormack<-fnReadEcopath(root,"McCormack2019")
+# Diet - columns are the proportion diet composition for a consumer
+
+apply(McCormack$diet,2,sum,na.rm=TRUE)
+
+```
+
+
+
+
+
 ```{r foraging, echo=TRUE, eval=FALSE}
 # determine max ingestion rates using numerical methods
 
 # Functions  ###########
-calcQprime<-function( # returns vector of prey consumed
+calcPredConsume<-function( # returns vector of prey consumed
                  I  # vector - max prey ingestion rates for predator relative 
-                    #              to prey standing stock
-                ,c  # vector - prey selectivities for predator
-                ,N  # vector - prey biomasses for predator
-                ,A  # vector - prey availability to predator
-                ,PB # vector - prey productivity to biomass ratio
-                ,EE # vector - ecotrophic efficiency of prey
-                ,B  # scalar - Biomass of predator
+                                # to prey standing stock
+                ,Br  # vector - prey biomasses for predator
+                ,a   # vector - prey availability to predator
+                ,PBr # vector - resource (prey) productivity to biomass ratio
+                ,EE  # vector - ecotrophic efficiency of prey
+                ,Bp  # scalar - Biomass of predator
                 ){
                 res<-c*0
                 if(sum(c)>0) res<-c/sum(c)*B*Holling2(N,I,A)*EE*PB
                 return(res)
                 }
 
+
 Holling2<-function( # returns vector proportion of max ingestion consumed
-                   N # vector - prey biomasses
-                  ,I # vector - maximum ingestion rate relative to standing stock N
-                  ,A # vector - availability of prey to predator
+                   Br # vector - resource (prey) biomasses
+                  ,I # vector - maximum ingestion rate of resources for predator
+                  ,v # vector - vulnerability of prey to predator
                   ){
   mask<-I>0
   res<-I
-  res[mask]<-A[mask]*N[mask]/(1+A[mask]*N[mask]/I[mask])
+  sum_vBr<-sum(v[mask]*Br[mask])
+  res[mask]<-v[mask]*Br[mask]/(I[mask]+sum_vBr)
   return(res)
   }
 
@@ -807,7 +823,7 @@ eMod<-McCormack
 
 # Prepare data
 
-Nsp<-nrow(eMod$names)
+Npool<-nrow(eMod$params)
 
 EstI<-!is.na(eMod$params[,"Q.B"])  # only estimate I for these groups (others do not consume)
 In_B<-eMod$params[,"B"]
@@ -884,26 +900,4 @@ R<-(eMod$params[,"Q.B"]-eMod$params[,"P.B"])
 #### Processing Ecopath data  
   
 difficulty with Hill et al aggregations is that there is no differentiation between krill and fish pathways in the species pools. e.g. fish-eating penguins versus krill-eating penguins.
-
-
-
-```{r echo=TRUE, eval=FALSE}
-
-root<-"/Users/andreworca/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
-
-fnReadEcopath<-function(root,fname){
-  names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
-  params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
-  diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
-  avail<-read.csv(paste(root,fname,"_availability.csv",sep=""),header=FALSE)
-  return(list(names=names,params=params,diet=diet,avail=avail))
-     }
-
-McCormack<-fnReadEcopath(root,"McCormack2019")
-# Diet - columns are the percentage diet composition for a consumer
-
-```
-
-
-
 
