@@ -637,6 +637,31 @@ References: * 1 Melbourne-Thomas et al 2015; * 2 Jeffery et al 2020
    
 ### Higher Trophic Levels  
   
+Ecopath models are used to estimate maximum ingestion rates, vulnerabilities, combined respiration & non-assimilated waste, and non-predatory mortality (disease etc.).  
+
+The literature is used to do the following:
+i) allometry to differentiate respiration from non-assimilated waste,
+ii) carbon:silica and carbon:iron ratios in each species (used to differentiate waste into different pools)
+iii)  
+
+Two types of Ecopath models are used:
+a) unadjusted models from the literature (thanks to Roshni and Stacey for compiling)
+Ballerini 2014 (WAP)
+Dahood 2019 (WAP)
+Gurney 2014 (PEI)
+Maldonado 2016
+McCormack 2019 (Prydz Bay)
+Pinkerton 2010 (Ross Sea)
+Subramanium 2020 (Kerguelen)
+Suma 2014 
+Supernand 2017
+
+
+
+b) standardised models from Hill et al 2021
+
+
+
 General parameters estimated from existing Ecopath models.    
 Outline the estimation and the results.  
 
@@ -716,9 +741,9 @@ print(PreyAvail)
   
 ### Per predator biomass ingestion rate of prey  
   
-Numerical methods can be used to estimate a predator(j)-prey(i) matrix of maximum per-predator-biomass ingestion rates, $I_{i,j}$ from outputs of Ecopath - production to biomass and consumption to biomass ratios combined with the diet matrix - based on the vulnerability and functional relationships to be used in the steady-state model. 
+Ingestion rates of prey by predators is governed by the abundance and productivity of prey, the vulnerability of prey and the ingestion rates of predators given the available prey.  Their co-dependence makes reliable estimation more difficult.  Nevertheless, the vulnerability and functional relationships to be used in the steady-state model can be approximately estimated from Ecopath results. 
 
-Using terminology for Ecopath inputs and outputs, the equation to be solved is based on the predator-prey consumption matrix such that the total consumption of a prey, i, across all predators, $\sum_j$, is equal to its production discounted by the ecotrophic efficiency:
+Using terminology for Ecopath inputs and outputs, the equations to be solved are based on the predator-prey consumption matrix such that the total consumption of a prey, i, across all predators, $\sum_j$, is equal to its production discounted by the ecotrophic efficiency:
 
 \begin{equation} \label{eq:ConsumptionWithDiet}
 \sum_j \left[ {d_{i,j} \left( \frac{Q_j}{B_j} \right) B_j} \right]=EE_i\left( \frac{P_i}{B_i} \right) B_i
@@ -730,32 +755,162 @@ In a steady-state, the consumption by predators can be represented by the model 
 \left( \frac{Q_j}{B_j} \right) B_j = B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j} \right]
 \end{equation}
 
-In order to give equal weight to all pools, the following equation is minimised:
+In order to give equal weight to all pools, the following equation could be minimised when vulnerability can be estimated externally:
 
 \begin{equation} \label{eq:IngestMinimisation}
-SS(\vec{I})=\sum_i \left( 1 - \frac{\sum_{j} d_{i,j} B_j\sum_i \left[ g \left(\vec{B},\vec{s}_j,\vec{I}_j \right)_{i,j}I_{i,j}  \right]}
+SS(\vec{I})=\sum_i \left( 1 - \frac{\sum_{j} d_{i,j} B_j\sum_i \left[ g \left(\vec{B},\vec{v}_j,\vec{I}_j \right)_{i,j}I_{i,j}  \right]}
                           {EE_i\left( \frac{P_i}{B_i} \right) B_i}\right)^2
 \end{equation}
 
+However, diet information is rarely sufficient for estimating vulnerability of prey to predators.  
+
+Instead, vulnerability and maximum ingestion rate can be combined in the estimation if the maximum ingestion rate is the maximum ingestion rate for a predator across all prey and the vulnerability then relates to the combined availability of prey with the expected production of prey, independently of other predators.  Thus, 
+
+\begin{equation} \label{eq:IngestAndVulnerabilityMinimisation}
+SS_j==\left[ g \left(\vec{B},\vec{v}_j,I_j \right)_{i,j}I_{j}-d_{i,j}\left( \frac{Q_j}{B_j} \right) \right]^2
+\end{equation}
 
 
-
-```{r echo=TRUE, eval=FALSE}
-
-root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/"
+```{r Ecopath_Fns echo=TRUE, eval=FALSE}
+# read in Ecopath
+library(PopED)
 
 fnReadEcopath<-function(root,fname){
   names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
   params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
   diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
-  avail<-read.csv(paste(root,fname,"_availability.csv",sep=""),header=FALSE)
-  return(list(names=names,params=params,diet=diet,avail=avail))
+  return(list(names=names,params=params,diet=diet))
      }
 
-McCormack<-fnReadEcopath(root,"McCormack2019")
-# Diet - columns are the proportion diet composition for a consumer
+calcPredConsume<-function( # returns vector of prey consumed
+                 I   # scalar or vector - max ingestion rates for each prey of predator
+                ,Br  # vector - biomasses of prey
+                ,v   # vector - vulnerability of prey to predator
+                ,Bp  # scalar - Biomass of predator
+                ){
+                return(sum(Holling2(Br,I,v)*I)*Bp)
+                }
+Holling2<-function(   # returns vector proportion of max ingestion consumed
+                   Br # vector - resource (prey) biomasses
+                  ,I  # scalar
+                  ,v  # vector - vulnerability of prey to predator
+                  ){
+  mask<-v>0
+  res<-v*0
+  sum_vBr<-sum(v[mask]*Br[mask])
+  res[mask]<-v[mask]*Br[mask]/(I+sum_vBr)
+  return(res)
+  }
 
-apply(McCormack$diet,2,sum,na.rm=TRUE)
+fnCheckEcoPathFit<-function(B,QB,PB,d,EE){
+       n<-length(B)
+       pool<-seq(1,n,1)
+       res<-lapply(pool,function(i,B,QB,PB,d,EE){
+              left<-sum(unlist(
+                    sapply(pool,function(j,i,d,B,QB)
+                      {d[i,j]*B[j]*QB[j]},i,d,B,QB)
+                    )) # end unlist sum
+                   right<-EE[i]*PB[i]*B[i]
+                   return((left-right)/right)
+                 },B,QB,PB,d,EE)
+       return(unlist(res))
+ } # end check function
+
+#     Libraries to support optimisation ####
+
+#     Root function for minimisation routine ####
+
+rootFnIhat<-function(par,B,QB,d,useLog){
+        I<-par[1]
+        v<-par[-1]
+        res<-v*B
+        sumRes<-sum(res)
+        if(useLog) {res<-sum( (log(I*res/(I+sumRes)) - log(d*QB))^2)} else
+        {res<-sum( (I*res/(I+sumRes) - d*QB)^2)}
+        return(res)
+        } # end find Ihat
+
+#     Other functions to support minimising I,v ####
+
+trialV<-function(v,I,iB,iQB,id,iUseLog,boundLo,boundHi){
+  resI<-NULL
+  resV=NULL
+  resValue=NULL
+  # unadjusted
+  Vstart<-c(I,rep(v,length(id)))
+res<-optim_ARS(par=Vstart,fn=rootFnIhat,lower=boundLo,upper=boundHi,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+  resI<-c(resI,res$par[1])
+  resV<-rbind(resV,res$par[-1])
+  resValue<-c(resValue,res$ofv)
+
+    # adjust Iup
+  Vstart<-c(resI[1]*1.5,resV[1,])
+res<-optim_ARS(par=Vstart,fn=rootFnIhat,lower=boundLo,upper=boundHi,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+  resI<-c(resI,res$par[1])
+  resV<-rbind(resV,res$par[-1])
+  resValue<-c(resValue,res$ofv)
+
+    # adjust Idown
+  Vstart<-c(resI[1]*0.5,resV[1,])
+res<-optim_ARS(par=Vstart,fn=rootFnIhat,lower=boundLo,upper=boundHi,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+  resI<-c(resI,res$par[1])
+  resV<-rbind(resV,res$par[-1])
+  resValue<-c(resValue,res$ofv)
+
+    # adjust inverse V
+  Vstart<-c(resI[1],(1-resV[1,]))
+res<-optim_ARS(par=Vstart,fn=rootFnIhat,lower=boundLo,upper=boundHi,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+  resI<-c(resI,res$par[1])
+  resV<-rbind(resV,res$par[-1])
+  resValue<-c(resValue,res$ofv)
+
+      # adjust invert last V
+  Vstart<-c(res$par[1]*0.5,(1-res$par[-1]))
+res<-optim_ARS(par=Vstart,fn=rootFnIhat,lower=boundLo,upper=boundHi,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+  resI<-c(resI,res$par[1])
+  resV<-rbind(resV,res$par[-1])
+  resValue<-c(resValue,res$ofv)
+    
+  return(list(name=c("unadj","Iup","Idown","inverseV","lastInvert"),I=resI,v=resV,value=resValue))  
+} # end function
+
+minV<-function(r){
+   minR<-which(r$value==min(r$value))
+   return(list(name=r$name[minR],I = r$I[minR],v = r$v[minR,],value = r$value[minR]))
+    } # return minimum result from list of results
+
+searchV<-function(iB,iQB,id,iUseLog,boundLo,boundHi){
+  res<-lapply(seq(0.1,0.9,0.1),trialV,iQB,iB,iQB,id,iUseLog,boundLo,boundHi)
+  resMin<-unlist(lapply(res,function(r){
+    r1<-which(unlist(r$value)==min(unlist(r$value) ))
+    return(r1[1])}))
+  resI<-unlist(sapply(seq(1,length(resMin),1),function(i,r,rMin){r[[i]]$I[rMin[i]]},res,resMin))
+  resV<-do.call(rbind,lapply(seq(1,length(resMin),1),function(i,r,rMin){r[[i]]$v[rMin[i],]},res,resMin))
+  resValue<-unlist(sapply(seq(1,length(resMin),1),function(i,r,rMin){r[[i]]$value[rMin[i]]},res,resMin))
+  resName<-unlist(sapply(seq(1,length(resMin),1),function(i,r,rMin){r[[i]]$name[rMin[i]]},res,resMin))
+  return(list(name=resName,I=resI,v=resV,value=resValue))  
+} # end function
+
+fnCheckEstI_V<-function(I              # estimated I vector
+                        ,v             # estimated v matrix
+                        ,d             # diet matrix
+                        ,B             # vector of biomasses
+                        ,QB            # vector - consumption by each pool
+                 ){
+                 n<-length(QB)
+                 pool<-seq(1,n,1)
+                 # vector of total consumption by predators
+                dprime<-lapply(pool,function(j,I,v,d,B,QB){
+                         if(I[j]==0) return(v[,j]*0)
+                         res<-Holling2(B,I[j],v[,j])*I[j]
+   res<-round(((res-d[,j]*QB[j])/(d[,j]*QB[j]))*100,0)
+   res[is.nan(res)]<-0
+                         return(res)
+                         },I,v,d,B,QB)
+                 dprime<-do.call(cbind,dprime)
+                 
+                 return(dprime)
+ } # end check function
 
 ```
 
@@ -763,69 +918,31 @@ apply(McCormack$diet,2,sum,na.rm=TRUE)
 
 
 
-```{r foraging, echo=TRUE, eval=FALSE}
-# determine max ingestion rates using numerical methods
+```{r EcopathTestFns, echo=TRUE, eval=FALSE}
+root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/Rinputs/"
 
-# Functions  ###########
-calcPredConsume<-function( # returns vector of prey consumed
-                 I  # vector - max prey ingestion rates for predator relative 
-                                # to prey standing stock
-                ,Br  # vector - prey biomasses for predator
-                ,a   # vector - prey availability to predator
-                ,PBr # vector - resource (prey) productivity to biomass ratio
-                ,EE  # vector - ecotrophic efficiency of prey
-                ,Bp  # scalar - Biomass of predator
-                ){
-                res<-c*0
-                if(sum(c)>0) res<-c/sum(c)*B*Holling2(N,I,A)*EE*PB
-                return(res)
-                }
+# Inputs for Ecopath Analysis ####
+
+units<-365 # time units: 1=year, 365=days
+
+iUseLog<-FALSE # log transform in root function
+
+Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand","Hill2021","Hill2021_Stand","Maldonado2016_Yr1900","Maldonado2016_Yr2008","McCormack2019","Pinkerton2010","Pinkerton2010_Stand","Subramanium2020","Surma2014")
 
 
-Holling2<-function( # returns vector proportion of max ingestion consumed
-                   Br # vector - resource (prey) biomasses
-                  ,I # vector - maximum ingestion rate of resources for predator
-                  ,v # vector - vulnerability of prey to predator
-                  ){
-  mask<-I>0
-  res<-I
-  sum_vBr<-sum(v[mask]*Br[mask])
-  res[mask]<-v[mask]*Br[mask]/(I[mask]+sum_vBr)
-  return(res)
-  }
+# designate Ecopath model in order to generalise code ####
 
-rootFn<-function(I              # vector of values for max Ingestion (changed to matrix)
-                ,PredDiet # list of relevant diet matrices - cols = predators, rows = prey: 
-                                #  c : selectivity of prey by predator
-                                #  d : proportions of prey in predator diet
-                                #  A : availability of prey to predator
-                ,B              # vector - biomasses of each pool
-                ,PB             # vector - production to biomass ratio for each pool
-                ,QB             # vector - consumption to biomass ratio for each pool
-                ,EE             # vector - ecotrophic efficiency for each pool
-                 ){
-                 n<-nrow(PredDiet[[1]])
-                 Iprime<-PredDiet$c*0
-                 Iprime[PredDiet$c>0]<-I
-                 Qprime<-sapply(seq(1,n,1),function(j,I,Pdiet,B,PB,EE){
-                   calcQprime(I[,j],Pdiet$c[,j],B,Pdiet$A[,j],PB,EE,B[j])
-                   },Iprime,PredDiet,B,PB,EE)
-                 
-                 di<-apply(PredDiet$d,1,function(d,B,QB){sum(d*B*QB)},B,QB)
-                 qi<-apply(Qprime,1,sum)
-                 return(sum((1-di[di>1]/qi[di>1])^2))
+eMod<-fnReadEcopath(root,Ecopath_Mods[1])
 
- } # end root function
+# diet - columns are the proportion diet composition for a consumer
+# check diet adds to 1 for each predator (not always the case) ####
 
-# Ecopath model
+apply(eMod$diet,2,sum,na.rm=TRUE)
 
-eMod<-McCormack
-
-# Prepare data
+# Prepare data ####
 
 Npool<-nrow(eMod$params)
 
-EstI<-!is.na(eMod$params[,"Q.B"])  # only estimate I for these groups (others do not consume)
 In_B<-eMod$params[,"B"]
 In_PB<-eMod$params[,"P.B"]
 In_PB[is.na(In_PB)]<-1  # consume biomass even though no production occurs (e.g. detritus)
@@ -835,67 +952,182 @@ In_EE<-eMod$params[,"EE"]
 
 Diet<-eMod$diet
 Diet[is.na(Diet)]<-0
-Selectivity<-Diet
-Selectivity[Selectivity>0]<-1  # selectivity is determined by relative biomass (equal time).
 
-PredDiet<-list(c=as.matrix(Selectivity)
-              ,d=as.matrix(Diet)
-              ,A=as.matrix(PreyAvail))   # set to 1 if not to use availability matrix
-# create availability matrix if input is scalar
-if(length(PredDiet$A)!=length(PredDiet$d)) PredDiet$A <- matrix(PredDiet$A,nrow=Nsp,ncol=Nsp)
+# Check how well Ecopath model is consistent in diet matrix ####
 
-# Solve
-I<-Selectivity*eMod$params[,"B"]/20
-I<-I[Selectivity>0]
+fnCheckEcoPathFit(In_B,In_QB,In_PB,PredDiet$d,In_EE)
 
-res1<-nlm(rootFn,I              # vector of values for max Ingestion (changed to matrix)
-                ,PredDiet # list of relevant diet matrices - cols = predators, rows = prey: 
-                                #  c : selectivity of prey by predator
-                                #  d : proportions of prey in predator diet
-                ,In_B    # vector - biomasses of each pool
-                ,In_PB  # vector - production to biomass ratio for each pool
-                ,In_QB  # vector - consumption to biomass ratio for each pool
-                ,In_EE   # vector - ecotrophic efficiency for each pool
-                ,iterlim=10000) # end call to root function
-        
-resI<-Selectivity
-resI[Selectivity>0]<-res1$estimate
-write.csv(resI,file="resI.csv")
+# estimate vulnerability matrix (v) and predator max ingestion rates (I) ####
 
+
+#     test on a single predator ####
+tgt<-Npool
+units<-365 # time units: 1=year, 365=days
+mask<-Diet[,tgt]>0
+iB<-In_B[mask]
+iQB<-In_QB[tgt]/units
+id<-Diet[mask,tgt]
+iUseLog<-FALSE # log transform in root function
+
+Vstart<-c(iQB/2,rep(0.9,length(id)))
+boundLo<-1E-10  
+boundHi<-c(Inf,rep(1,length(id)))  # does not like Inf in vector but if it was to be changed to 1 then need to ensure that estimation of I is between 0 and 1, which may require scaling
+rootFnIhat(Vstart,B=iB,QB=iQB,d=id,useLog=iUseLog)
+
+Vstart<-c(iQB/2,rep(0.9,length(id)))
+
+res<-optim_ARS(par=c(iQB/2,rep(0.5,length(id))),fn=rootFnIhat,lower=boundLo,upper=boundHi
+               ,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
+
+
+res<-trialV(0.1,iQB,iB,iQB,id,iUseLog,boundLo,boundHi)
+res<-searchV(iB,iQB,id,iUseLog,boundLo,boundHi)
+res<-minV(res)
+
+```
+
+
+
+
+
+```{r est_L_v, echo=TRUE, eval=FALSE}
+
+#     minimisation ####
+# and saving of ingestion rates and vulnerability matrix given the ecopath model
+
+res<-do.call(cbind,lapply(seq(1,Npool,1),function(j,iB,iQB,Diet,units,iUseLog){
+      mask<-Diet[,j]>0
+      B  <- iB[mask]
+      QB <- iQB[j]/units
+      d  <- Diet[mask,j]
+      if(sum(mask)==0) return(c(QB,Diet[,j]))
+      boundLo <- c(1E-10,rep(1E-10,length(d)))
+      boundHi <- c(Inf,rep(1,length(d)))
+      res<-minV(searchV(B,QB,d,iUseLog,boundLo,boundHi))
+      v<-Diet[,j]*0
+      v[mask]<-res$v
+      return(c(res$I,v))
+     },In_B,In_QB,Diet,units,iUseLog))
+estI<-res[1,]
+estV<-res[-1,]
+
+save(estI,estV,file="IO in/estI_V_ordinaryLS.Rdata")
+
+# check diet matrix ####
+
+chk<-fnCheckEstI_V(estI,estV,Diet,In_B,In_QB/units)
+pchk<-unlist(chk)
+pDiet<-unlist(Diet)
+mask<-pchk!=0
+plot(pDiet[mask],pchk[mask])
+# check that most of the wayward estimates are very low proportions in the diet with very little weight in the sums of squares.
 
 ```
 
 #### Non-Predation mortality from Ecopath data
 
-Non-predation mortality of a species in Ecopath is the loss of production not due to predation, the latter of which is explained by the ecotrohic efficiency.
+Non-predation mortality rate per biomass (in the time units of production rate) of a species in Ecopath is the loss of production not due to predation, the latter of which is explained by the ecotrohic efficiency.
 
-??Need to consider waste through excretion and defaecation and feeding inefficiency....
+
 
 $$
-M0_j=(1-EE_j)\left(\frac{P_j}{B_j}\right)+Waste ?check
+m0_j=(1-EE_j)\left(\frac{P_j}{B_j}\right) \textrm{  }m.t^{-1}
 $$
-
 ```{r echo=TRUE,eval=FALSE}
-M0<-(1-eMod$params[,"EE"])*eMod$params[,"P.B"]+Waste
-```
-
-#### Respiration per mass
-
-Non-production resources (mostly respiration) Respiration of a species ...
-
-factor in change in respiration due to change in foraging activity e.g. change in foraging range
-
-
-$$
-R_j<-\left(\frac{Q_j}{B_j}\right)-\left(\frac{P_j}{B_j}\right)
-$$
-
-```{r echo=TRUE,eval=FALSE}
-R<-(eMod$params[,"Q.B"]-eMod$params[,"P.B"])
+m0pd<-(1-unlist(eMod$params[,"EE"]))*unlist(eMod$params[,"P.B"])/365
 
 ```
 
+As a rate, $t^{-1}$ relative to biomass
 
+$$
+M0_j=-log\left[ 1-\left(\frac{P_j}{B_j}\right)(1-EE_j) \right] \textrm{  }t^{-1}
+$$
+
+```{r echo=TRUE,eval=FALSE}
+M0pd<--log(1-m0pd)
+```
+
+
+#### Respiration and Non-assimilated Mass
+
+Proportion of consumption that is either defaecated (not assimilated) or respired/excreted.
+
+
+$$
+RNA_j=\frac{\left( Q_j-P_j \right)}{Q_j}
+$$
+
+```{r echo=TRUE,eval=FALSE}
+RNA<-(unlist(eMod$params[,"Q.B"])-unlist(eMod$params[,"P.B"]))/unlist(eMod$params[,"Q.B"])
+
+```
+
+
+```{r EcopathAnalysis echo=TRUE,eval=FALSE}
+# code brought down from above and run across all models
+
+root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/Rinputs/"
+
+Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand","Hill2021","Hill2021_Stand","Maldonado2016_Yr1900","Maldonado2016_Yr2008","McCormack2019","Pinkerton2010","Pinkerton2010_Stand","Subramanium2020","Surma2014")
+
+units<-365
+iUseLog=FALSE
+
+resEcopath<-lapply(Ecopath_Mods,function(EcoMod){
+  print(EcoMod)
+  eMod<-fnReadEcopath(root,EcoMod)
+  checkPredTotalDiet<-apply(eMod$diet,2,sum,na.rm=TRUE)
+
+  Npool<-nrow(eMod$params)
+
+  In_B<-eMod$params[,"B"]
+  In_PB<-eMod$params[,"P.B"]
+  In_PB[is.na(In_PB)]<-1  
+  In_QB<-eMod$params[,"Q.B"]
+  In_QB[is.na(In_QB)]<-0  
+  In_EE<-eMod$params[,"EE"]
+  Diet<-eMod$diet
+  Diet[is.na(Diet)]<-0
+
+  checkEcopathFit<-fnCheckEcoPathFit(In_B,In_QB,In_PB,PredDiet$d,In_EE)
+
+  res<-do.call(cbind,lapply(seq(1,Npool,1),function(j,iB,iQB,Diet,units,iUseLog){
+      mask<-Diet[,j]>0
+      B  <- iB[mask]
+      QB <- iQB[j]/units
+      d  <- Diet[mask,j]
+      if(sum(mask)==0) return(c(QB,Diet[,j]))
+      boundLo <- c(1E-10,rep(1E-10,length(d)))
+      boundHi <- c(Inf,rep(1,length(d)))
+      res<-minV(searchV(B,QB,d,iUseLog,boundLo,boundHi))
+      v<-Diet[,j]*0
+      v[mask]<-res$v
+      return(c(res$I,v))
+     },In_B,In_QB,Diet,units,iUseLog))
+  estI<-res[1,]
+  estV<-res[-1,]
+  m0pd<-(1-unlist(eMod$params[,"EE"]))*unlist(eMod$params[,"P.B"])/units
+  M0pd<--log(1-m0pd)
+  RNA<-(unlist(eMod$params[,"Q.B"])-unlist(eMod$params[,"P.B"]))/unlist(eMod$params[,"Q.B"])
+
+EcopathEst<-list(
+             PoolN = Npool
+            ,checkPredTotalDiet = checkPredTotalDiet
+            ,checkEcopathFit = checkEcopathFit
+            ,IngestionMax = estI
+            ,v_matrix = estV
+            ,NonPredMortRate = M0pd
+            ,Resp_NonAssim = RNA
+            )
+save(EcopathEst,file=paste0("EcopathEst_",EcoMod,"_day_OLS.Rdata"))
+return(EcopathEst)  
+})
+
+names(resEcopath)<-Ecopath_Mods
+save(resEcopath,file="EcopathEstimation_day_OLS.Rdata")
+
+```
 
 #### Processing Ecopath data  
   
