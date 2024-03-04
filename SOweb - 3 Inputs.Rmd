@@ -771,7 +771,7 @@ SS_j==\left[ g \left(\vec{B},\vec{v}_j,I_j \right)_{i,j}I_{j}-d_{i,j}\left( \fra
 \end{equation}
 
 
-```{r Ecopath_Fns echo=TRUE, eval=FALSE}
+```{r EcopathFns, echo=TRUE, eval=FALSE}
 # read in Ecopath
 library(PopED)
 
@@ -912,6 +912,13 @@ fnCheckEstI_V<-function(I              # estimated I vector
                  return(dprime)
  } # end check function
 
+fnCalcI<-function(i        # target prey species
+                  ,B      # vector of biomasses of all taxa
+                  ,v       # vulnerabilities of biomasses to predator
+                  ,QBj     # consumption per biomass of predator
+                  ){sum(v*B)/(v[i]*B[i]/QBj-1)}
+
+
 ```
 
 
@@ -961,20 +968,20 @@ fnCheckEcoPathFit(In_B,In_QB,In_PB,PredDiet$d,In_EE)
 
 
 #     test on a single predator ####
-tgt<-Npool
+tgt<-2
 units<-365 # time units: 1=year, 365=days
 mask<-Diet[,tgt]>0
 iB<-In_B[mask]
 iQB<-In_QB[tgt]/units
 id<-Diet[mask,tgt]
-iUseLog<-FALSE # log transform in root function
+#iUseLog<-FALSE # log transform in root function
 
 Vstart<-c(iQB/2,rep(0.9,length(id)))
 boundLo<-1E-10  
 boundHi<-c(Inf,rep(1,length(id)))  # does not like Inf in vector but if it was to be changed to 1 then need to ensure that estimation of I is between 0 and 1, which may require scaling
 rootFnIhat(Vstart,B=iB,QB=iQB,d=id,useLog=iUseLog)
 
-Vstart<-c(iQB/2,rep(0.9,length(id)))
+Vstart<-c(iQB/2,rep(0.2,length(id)))
 
 res<-optim_ARS(par=c(iQB/2,rep(0.5,length(id))),fn=rootFnIhat,lower=boundLo,upper=boundHi
                ,iter=10000,iter_adapt=10,trace=FALSE,B=iB,QB=iQB,d=id,useLog=iUseLog)
@@ -982,7 +989,7 @@ res<-optim_ARS(par=c(iQB/2,rep(0.5,length(id))),fn=rootFnIhat,lower=boundLo,uppe
 
 res<-trialV(0.1,iQB,iB,iQB,id,iUseLog,boundLo,boundHi)
 res<-searchV(iB,iQB,id,iUseLog,boundLo,boundHi)
-res<-minV(res)
+res1<-minV(res)
 
 ```
 
@@ -990,7 +997,7 @@ res<-minV(res)
 
 
 
-```{r est_L_v, echo=TRUE, eval=FALSE}
+```{r estLv, echo=TRUE, eval=FALSE}
 
 #     minimisation ####
 # and saving of ingestion rates and vulnerability matrix given the ecopath model
@@ -1064,12 +1071,15 @@ RNA<-(unlist(eMod$params[,"Q.B"])-unlist(eMod$params[,"P.B"]))/unlist(eMod$param
 ```
 
 
-```{r EcopathAnalysis echo=TRUE,eval=FALSE}
+```{r EcopathAnalysis, echo=TRUE,eval=FALSE}
 # code brought down from above and run across all models
 
 root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/Rinputs/"
 
-Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand","Hill2021","Hill2021_Stand","Maldonado2016_Yr1900","Maldonado2016_Yr2008","McCormack2019","Pinkerton2010","Pinkerton2010_Stand","Subramanium2020","Surma2014")
+Ecopath_Mods<-c("Subramanium2020")
+
+# Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand","Hill2021","Hill2021_Stand","Maldonado2016_Yr1900","Maldonado2016_Yr2008","McCormack2019","Pinkerton2010","Pinkerton2010_Stand","Subramanium2020","Surma2014")
+
 
 units<-365
 iUseLog=FALSE
@@ -1078,10 +1088,10 @@ resEcopath<-lapply(Ecopath_Mods,function(EcoMod){
   print(EcoMod)
   eMod<-fnReadEcopath(root,EcoMod)
   checkPredTotalDiet<-apply(eMod$diet,2,sum,na.rm=TRUE)
-
   Npool<-nrow(eMod$params)
 
   In_B<-eMod$params[,"B"]
+  In_B[is.na(In_B)]<-0
   In_PB<-eMod$params[,"P.B"]
   In_PB[is.na(In_PB)]<-1  
   In_QB<-eMod$params[,"Q.B"]
@@ -1090,23 +1100,42 @@ resEcopath<-lapply(Ecopath_Mods,function(EcoMod){
   Diet<-eMod$diet
   Diet[is.na(Diet)]<-0
 
-  checkEcopathFit<-fnCheckEcoPathFit(In_B,In_QB,In_PB,PredDiet$d,In_EE)
+  checkEcopathFit<-fnCheckEcoPathFit(In_B,In_QB,In_PB,Diet,In_EE)
+  rSeq<-seq(1,Npool,1)
+  res<-do.call(cbind,lapply(rSeq,
+                    function(j,iB,iQB,Diet,units,iUseLog){
+        print(paste0(EcoMod," Pool ",j))
+                    mask<-Diet[,j]>0
+                    B  <- iB[mask]
+                    QB <- iQB[j]/units
+                    d  <- Diet[mask,j]
+                    if(sum(mask)==0 | sum(B>0)==0) return(c(QB,Diet[,j]))
+                    boundLo <- c(1E-10,rep(1E-10,length(d)))
+                    boundHi <- c(Inf,rep(1,length(d)))
+                    r1<-minV(searchV(B,QB,d,iUseLog,boundLo,boundHi))
+                    if(length(r1$I)>1){
+                          v<-Diet[,j]*0
+                          v[mask]<-rep(1,length(d))
+                          rI<-fnCalcI(which(mask)[1]        # target prey species
+                                     ,iB      # vector of biomasses of all taxa
+                                     ,v       # vulnerabilities of biomasses to predator
+                                     ,QB     # consumption per biomass of predator
+                                      )
+                          r2<-c(rI,v)  # need to check if applied to more than one prey
+                      print("Minimum of Search returned more than one result.  Vulnerabilities returned were:")
+                      print(r1$v)
 
-  res<-do.call(cbind,lapply(seq(1,Npool,1),function(j,iB,iQB,Diet,units,iUseLog){
-      mask<-Diet[,j]>0
-      B  <- iB[mask]
-      QB <- iQB[j]/units
-      d  <- Diet[mask,j]
-      if(sum(mask)==0) return(c(QB,Diet[,j]))
-      boundLo <- c(1E-10,rep(1E-10,length(d)))
-      boundHi <- c(Inf,rep(1,length(d)))
-      res<-minV(searchV(B,QB,d,iUseLog,boundLo,boundHi))
-      v<-Diet[,j]*0
-      v[mask]<-res$v
-      return(c(res$I,v))
-     },In_B,In_QB,Diet,units,iUseLog))
+                    } else {
+                    v<-Diet[,j]*0
+                    v[mask]<-r1$v
+                    r2<-c(r1$I,v)
+                    }
+                    return(r2)
+                    },In_B,In_QB,Diet,units,iUseLog))
+  print(res)
   estI<-res[1,]
   estV<-res[-1,]
+  print(estV)
   m0pd<-(1-unlist(eMod$params[,"EE"]))*unlist(eMod$params[,"P.B"])/units
   M0pd<--log(1-m0pd)
   RNA<-(unlist(eMod$params[,"Q.B"])-unlist(eMod$params[,"P.B"]))/unlist(eMod$params[,"Q.B"])
