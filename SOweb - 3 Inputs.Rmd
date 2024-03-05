@@ -775,11 +775,18 @@ SS_j==\left[ g \left(\vec{B},\vec{v}_j,I_j \right)_{i,j}I_{j}-d_{i,j}\left( \fra
 # read in Ecopath
 library(PopED)
 
-fnReadEcopath<-function(root,fname){
+fnReadEcopath<-function(root,fname,ReplaceNA=TRUE){
   names<-read.csv(paste(root,fname,"_names.csv",sep=""),header=TRUE)
   params<-read.csv(paste(root,fname,"_params.csv",sep=""),header=TRUE)
   diet<-read.csv(paste(root,fname,"_diet.csv",sep=""),header=FALSE)
-  return(list(names=names,params=params,diet=diet))
+
+  if(ReplaceNA){
+     params[is.na(params[,"B"]),"B"]<-0
+     params[is.na(params[,"P.B"]),"P.B"]<-1 # consume biomass even though no production occurs (e.g. detritus)
+     params[is.na(params[,"Q.B"]),"Q.B"]<-0
+     diet[is.na(diet)]<-0
+     }
+    return(list(names=names,params=params,diet=diet))
      }
 
 calcPredConsume<-function( # returns vector of prey consumed
@@ -939,7 +946,7 @@ Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Y
 
 # designate Ecopath model in order to generalise code ####
 
-eMod<-fnReadEcopath(root,Ecopath_Mods[1])
+eMod<-fnReadEcopath(root,Ecopath_Mods[1],ReplaceNA=TRUE)
 
 # diet - columns are the proportion diet composition for a consumer
 # check diet adds to 1 for each predator (not always the case) ####
@@ -952,13 +959,9 @@ Npool<-nrow(eMod$params)
 
 In_B<-eMod$params[,"B"]
 In_PB<-eMod$params[,"P.B"]
-In_PB[is.na(In_PB)]<-1  # consume biomass even though no production occurs (e.g. detritus)
 In_QB<-eMod$params[,"Q.B"]
-In_QB[is.na(In_QB)]<-0  # consume biomass even though no production occurs (e.g. detritus)
 In_EE<-eMod$params[,"EE"]
-
 Diet<-eMod$diet
-Diet[is.na(Diet)]<-0
 
 # Check how well Ecopath model is consistent in diet matrix ####
 
@@ -1076,7 +1079,7 @@ RNA<-(unlist(eMod$params[,"Q.B"])-unlist(eMod$params[,"P.B"]))/unlist(eMod$param
 
 root<-"/Users/acon/Desktop/_w/_p/SOfoodweb & EcoVelocity/Ecosystem network synthesis/Ecopath files/Rinputs/"
 
-Ecopath_Mods<-c("Subramanium2020")
+Ecopath_Mods<-c("Gurney2014_Stand")
 
 # Ecopath_Mods<-c("Ballerini2014","Ballerini2014_Stand","Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand","Hill2021","Hill2021_Stand","Maldonado2016_Yr1900","Maldonado2016_Yr2008","McCormack2019","Pinkerton2010","Pinkerton2010_Stand","Subramanium2020","Surma2014")
 
@@ -1086,19 +1089,15 @@ iUseLog=FALSE
 
 resEcopath<-lapply(Ecopath_Mods,function(EcoMod){
   print(EcoMod)
-  eMod<-fnReadEcopath(root,EcoMod)
+  eMod<-fnReadEcopath(root,EcoMod,ReplaceNA=TRUE)
   checkPredTotalDiet<-apply(eMod$diet,2,sum,na.rm=TRUE)
   Npool<-nrow(eMod$params)
 
   In_B<-eMod$params[,"B"]
-  In_B[is.na(In_B)]<-0
   In_PB<-eMod$params[,"P.B"]
-  In_PB[is.na(In_PB)]<-1  
   In_QB<-eMod$params[,"Q.B"]
-  In_QB[is.na(In_QB)]<-0  
   In_EE<-eMod$params[,"EE"]
   Diet<-eMod$diet
-  Diet[is.na(Diet)]<-0
 
   checkEcopathFit<-fnCheckEcoPathFit(In_B,In_QB,In_PB,Diet,In_EE)
   rSeq<-seq(1,Npool,1)
@@ -1157,6 +1156,52 @@ names(resEcopath)<-Ecopath_Mods
 save(resEcopath,file="EcopathEstimation_day_OLS.Rdata")
 
 ```
+
+
+
+```{r Iv_summary, echo=FALSE, eval=FALSE}
+# summarise ingestion and vulnerability from Ecopath estimates
+
+rootIOin<-"/Users/acon/Desktop/_w/_r/SOweb/IO in/"
+
+fSOwebParams<-"SOwebPoolParams.csv"
+SOwebParams<-read.csv(paste0(rootIOin,fSOwebParams))
+
+Ecopath_Mods<-c( "Ballerini2014","Ballerini2014_Stand"
+                ,"Dahood2019","Gurney2014_Yr2000","Gurney2014_Stand"
+                ,"Hill2021","Hill2021_Stand"
+                ,"Maldonado2016_Yr1900","Maldonado2016_Yr2008"
+                ,"McCormack2019"
+                ,"Pinkerton2010","Pinkerton2010_Stand"
+                ,"Subramanium2020","Surma2014")
+                
+I<-sapply(SOwebParams$VarName,function(p){
+  print(p)
+  Imax<-unlist(sapply(Ecopath_Mods,function(f,p){  # start sapply ecopath models
+           eMod        <- fnReadEcopath(rootEcopath,f,ReplaceNA=TRUE)
+           mask<-eMod$names[,"SOwebName"] %in% p
+           if(sum(mask)>0){
+              eModPools   <- which(mask)
+              eModB <- eMod$params[eModPools,"B"]
+               if(sum(eModB>0)>0){
+                  fEcopathEst <- paste0("EcopathEst_",f,"_day_OLS.Rdata")
+                  load(paste0(rootEcopathEst,fEcopathEst))
+                  resI<-sum(EcopathEst$IngestionMax[eModPools]*eModB)/sum(eModB)
+                  return(resI)
+                  } else {return(NA)} } else {return(NA)}
+        },p)) # end sapply ecopath models
+  print(Imax)
+  mean<-mean(Imax,na.rm=TRUE)
+  min<-min(Imax,na.rm=TRUE)
+  max<-max(Imax,na.rm=TRUE)
+  n<-sum(!is.na(Imax))
+  return(c(n,mean,min,max,quantile(Imax,c(0.1,0.25,0.5,0.75,0.9),na.rm=TRUE)))
+}) # end sapply I
+
+
+
+```
+
 
 #### Processing Ecopath data  
   
