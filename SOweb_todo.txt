@@ -1,11 +1,32 @@
 SOweb ToDo
 
-# generate parameters for Holling functional response and add to tV
-# strip depth ranges from pool data and generate overlap
-# strip ingestion rate and selectivity from pool data
+****************************************
+# Holling functional feeding relationship
+
+# ingestion rate from estimation
 # combine availability * selectivtiy = vulnerability
+# depth + spatial overlap
+# size vulnerability (weigth predator preference and prey vulnerability according to respective survivorship curves & size-age relationships)
+# can add seasonal vulnerability to account for whales, reproductive season in colonies etc.
 
 
+# preferences or diet restrictions according to habitat dependencies: ice, krill, land, shelf etc.
+
+****************************************
+# metabolism
+
+# should there be consideration of increased metabolic effort at lower consumption levels.
+
+
+****************************************
+# Mortality
+
+# consider how mortality alters the survivorship curve 
+
+# use recruitment models to alter the life-time reproductive success and therefore impacts on recruitment e.g. emperor penguin chick mortality, land-based chick/pup mortality etc.
+
+****************************************
+# Carcass pool will have altered C:Fe composition depending on what is contributing to it.
 
 
 ****************************************
@@ -15,3 +36,6 @@ For write up
 see Melbourne-Thomas 2015 for Indian Sector
 Gardner 2000 for Ross Sea
 Allison et al 2010 whole of southern ocean - next to nothing in winter.
+
+
+

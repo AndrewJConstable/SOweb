@@ -43,8 +43,8 @@ DayMidMonth<-c(15,14,15,15,15,15,15,15,15,15,15,15)
 
 #    1.4. Input Environmental Data ####
 
-fPathIn<-"./IO in/"
-fPathOut<-"./IO out/"
+fPathIn<-"./DataIn/"
+fPathOut<-"./DataOut/"
 load(paste0(fPathIn,"Fe_means.Rdata")) # df Iron concentration (micromol.m-3) rows(MEASO area) cols(n, name, value)
 load(paste0(fPathIn,"Si_means.Rdata")) # df Silicate concentration (mmol.m-3) rows(MEASO area) cols(n, name, value)
 load(paste0(fPathIn,"Lat_means.Rdata")) # df Latitude mean for MEASO areas rows(MEASO area) cols(n, name, value)
