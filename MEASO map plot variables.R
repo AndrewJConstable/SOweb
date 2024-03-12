@@ -14,9 +14,9 @@ Ylim<-c(0,25)
 
 # depth ####
 
-oD <- list(rect = list(xmax=0.4,ymin=0,h=1.0)
-           ,XpropPerLog10 = 0.03
-           ,XstartLog10 = 8)
+oD <- list(rect = list(xmax=0.2,ymin=0,h=1.0)
+           ,XpropPerLog10 = 0.04
+           ,XstartLog10 = 6)
 
 Depth<-list(area  = 154333000
            ,depth = c(1000,2000,3000,4000)
@@ -29,7 +29,7 @@ Light<-list(MidWinterPropNight = 0.7
             ,late = 60
              )
 
-oL <- list(sun = list(x0 = 0.5, y0 = 0.8, r0 = 0.05)  # r0=radius as proportion of Xlim[2]
+oL <- list(sun = list(x0 = 0.3, y0 = 0.8, r0 = 0.05)  # r0=radius as proportion of Xlim[2]
            ,rect = list(w = 0.05,h = 0.6)
            ,Lmin = 0
            ,Lmax = 100
@@ -41,7 +41,7 @@ oL <- list(sun = list(x0 = 0.5, y0 = 0.8, r0 = 0.05)  # r0=radius as proportion 
 Tearly<- 1.2
 Tlate <- 5.4
 
-oT <- list(bulb = list(x0 = 0.65, y0 = 0.2, r0 = 0.05)  # r0=radius as proportion of Xlim[2]
+oT <- list(bulb = list(x0 = 0.45, y0 = 0.2, r0 = 0.05)  # r0=radius as proportion of Xlim[2]
            ,rect = list(w = 0.05,h = 0.6)
            ,Tmin = -2
            ,Tmax = 10
@@ -52,7 +52,7 @@ oT <- list(bulb = list(x0 = 0.65, y0 = 0.2, r0 = 0.05)  # r0=radius as proportio
 MLD<-list(early = 100
           ,late =150)
 
-oM <- list(wave = list(x0 = 0.8, y0 = 0.8, w = 0.1, h = 0.33, t=2) # thickness is in sine units
+oM <- list(wave = list(x0 = 0.6, y0 = 0.8, w = 0.1, h = 0.33, t=2) # thickness is in sine units
            ,rect = list(w = 0.05,h = 0.6)
            ,MLmin = 0
            ,MLmax = 500
@@ -60,29 +60,30 @@ oM <- list(wave = list(x0 = 0.8, y0 = 0.8, w = 0.1, h = 0.33, t=2) # thickness i
 )
 
 # sea ice ####
-MLD<-list(early = 100
-          ,late =150)
 
-oM <- list(wave = list(x0 = 0.8, y0 = 0.8, w = 0.1, h = 0.33, t=2) # thickness is in sine units
-           ,rect = list(w = 0.05,h = 0.6)
-           ,MLmin = 0
-           ,MLmax = 500
-           ,Ints = 10 # number of intervals
-)
+oS <- list(rect = list(xmin=0.7,ymin=0,h=1.0)
+           ,XpropPerLog10 = oD$XpropPerLog10
+           ,XstartLog10 = oD$XstartLog10)
+
+SeaIce<-list(MEASOarea  = Depth$area
+             ,OctAreaConc95 = list(early = Depth$area*0.85, late = Depth$area*0.5)
+             ,OctAreaConc75 = list(early = Depth$area*0.5, late = Depth$area*0.3)
+             ,OctAreaConc25 = list(early = Depth$area*0.3, late = Depth$area*0.1)
+) # end SeaIce
 
 ########## Calculations ####
 
 # depth polygon calculations ####
 
-oD$box<-list(xmin = (oD$rect$xmax-(log(Depth$area)-oD$XstartLog10)*oD$XpropPerLog10)*Xlim[2]
+oD$box<-list(xmin = (oD$rect$xmax-(log10(Depth$area)-oD$XstartLog10)*oD$XpropPerLog10)*Xlim[2]
              ,xmax = oD$rect$xmax*Xlim[2]
              ,ymin = oD$rect$ymin*Ylim[2]
              ,ymax = (oD$rect$ymin+oD$rect$h)*Ylim[2])
 
 oD$box<-c(oD$box,list(
-  ticksX = (c(seq(oD$XstartLog10,floor(log(Depth$area)),1),log(Depth$area))-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
+  ticksX = (c(seq(oD$XstartLog10,floor(log10(Depth$area)),1),log10(Depth$area))-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
   ,ticksY = (oD$rect$ymin+oD$rect$h)*Ylim[2]-seq(0,Depth$depth[length(Depth$depth)],1000)/Depth$depth[length(Depth$depth)]*oD$rect$h *Ylim[2]
-  ,poly = data.frame(x=  (c(oD$XstartLog10,log(cumsum(Depth$prop)*Depth$area),oD$XstartLog10)-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
+  ,poly = data.frame(x=  (c(oD$XstartLog10,log10(cumsum(Depth$prop)*Depth$area),oD$XstartLog10)-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
                      ,y= ((oD$rect$ymin+oD$rect$h)*Ylim[2]-c(0,Depth$depth,Depth$depth[length(Depth$depth)])/Depth$depth[length(Depth$depth)]*oD$rect$h*Ylim[2]))
 ))
 
@@ -162,6 +163,35 @@ oM<-c(oM,{
 })
 
 # Sea ice concentration and extent
+
+oS$box<-list(xmin = oS$rect$xmin*Xlim[2]
+             ,xmax = (oS$rect$xmin+(log10(SeaIce$MEASOarea)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+             ,ymin = oS$rect$ymin*Ylim[2]
+             ,ymax = (oS$rect$ymin+oS$rect$h)*Ylim[2])
+
+
+
+
+oS$box<-c(oS$box,list(
+   ticksX = (c(seq(oS$XstartLog10,floor(log10(SeaIce$MEASOarea)),1),log10(SeaIce$MEASOarea))-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]+oS$box$xmin
+  ,poly95 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                           ,(oS$rect$xmin+(log10(SeaIce[[2]]$early)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           ,(oS$rect$xmin+(log10(SeaIce[[2]]$late)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           )
+                       ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+  ,poly75 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                           ,(oS$rect$xmin+(log10(SeaIce[[3]]$early)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           ,(oS$rect$xmin+(log10(SeaIce[[3]]$late)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           )
+                       ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+  ,poly25 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                           ,(oS$rect$xmin+(log10(SeaIce[[4]]$early)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           ,(oS$rect$xmin+(log10(SeaIce[[4]]$late)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+                           )
+                       ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+))
+
+######### Plot ####
 p<-ggplot() + coord_fixed(ratio=1) + xlim(Xlim) + ylim(Ylim) + xlab("")+ylab("")+
    theme(
      axis.text.x = element_blank()
@@ -197,8 +227,14 @@ for(i in c(1:length(oL$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=o
   p<-p+geom_polygon(data=oM$box,aes(x=x,y=y),fill="white",linetype=1,colour="black", show.legend=FALSE)
   p<-p+geom_polygon(data=oM$poly,aes(x=x,y=y),fill="blue", show.legend=FALSE)
   for(i in c(1:length(oM$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oM$ticksX,y=c(oM$ticksY[i],oM$ticksY[i])),linetype=1,colour="black")
-  
+
+   # Sea ice (data are for open water)  
+  p<-p+geom_rect(aes(xmin=oS$box$xmin,xmax=oS$box$xmax,ymin=oS$box$ymin,ymax=oS$box$ymax),fill="darkblue",linetype=1,colour="black",show.legend=FALSE)
+  p<-p+geom_polygon(data=oS$box$poly95,aes(x=x,y=y),fill="blue", show.legend=FALSE)
+  p<-p+geom_polygon(data=oS$box$poly75,aes(x=x,y=y),fill="lightblue", show.legend=FALSE)
+  p<-p+geom_polygon(data=oS$box$poly25,aes(x=x,y=y),fill="grey", show.legend=FALSE)
+  for(i in c(1:length(oS$box$ticksX))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oS$box$ticksX[i],oS$box$ticksX[i]),y=c(oS$box$ymax-2,oS$box$ymax)),linetype=1,colour="black")
+
 p
 
-plot(oM$poly$x,oM$poly$y,type="l")
 
