@@ -1,0 +1,547 @@
+---
+title: "CCAMLR Decision Rules and Climate Change"
+output: pdf_document
+---
+
+by Andrew Constable  
+  
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(raster)
+library(sp)
+library(ggplot2)
+```
+  
+This routine provides a general Schaeffer production model to explore general principles associated with the CCAMLR Decision Rule for Antarctic krill fisheries.  
+  
+The decision rule has three parts, which say (SC-CAMLR 1989):  
+  
+(i) target level  
+(ii) depletion level  
+(iii) the lower of the catch limits will apply.  
+  
+The rule has three expectations:  
+i) that sufficient krill escapes the fishery in order to provide food for predators, and that predators will be able to recovery from the effects of fishing within 2-3 decades.  
+ii) recruitment of krill will be stable, such that fluctuations in the krill stock will not compromise krill recruitment in the long term, and that the krill stock will recover in 2-3 decades should the fishery be required to stop because it has reached critically low levels.  
+  
+This document is illustrative but intends to guide the reader through these principles as well as show when the decision rules may require adjustment because of climate change.  
+  
+## 1. The production model  
+
+Description of the Schaeffer model
+
+Parameters of the model are derived from the standardisation of biomass rate functions by Hill et al (2021) for balancing Ecopath models.
+
+``` {r Schaeffer, include=FALSE}
+# Functions ####
+
+# fn - Schaefer surplus production - growth rate given biomass ####
+dB<-function(B,par){B*par$r/par$phi*(1-(B/par$K)^par$phi)}
+
+fnM<-function(B,par){if(par$useMrate) return(par$M*B) else return(par$Mmax*B/(par$M50propK*par$K+B))}   # Pred TypeII fn relationship
+
+fnProjPellaTomlinson<-function(y,B,par,Yrs,res){
+  if(y>Yrs){
+    return(res)
+  } else {
+    B<-B+dB(B,par)-fnM(B,par)
+    y<-y+1
+    res<-rbind(res,data.frame(y=y,B=B))
+    return(fnProj(y,B,par,Yrs,res))
+  }
+} # end fnProj
+
+fnPlotPellaTomlinson<-function(PT,yrs,Bstart,Krange){
+Ystart<-yrs[1]
+Yrs<-yrs[2]
+res<-data.frame(y=0,B=Bstart)
+r1<-fnProjPellaTomlinson(Ystart,Bstart,PT$par,Yrs,res)
+plot(r1$y,r1$B,type="l",main="Projection",xlab="Year",ylab="Biomass",ylim=c(0,PT$par$K*Krange[2]))
+abline(h=c(PT$B_pmax_givenM,PT$Bmax_dB,PT$B0),lty=c(5,5,5),col=c("black","red","blue"))
+
+B<-seq(Krange[1],Krange[2],1E-2)*PT$par$K 
+plot(B,dB(B,PT$par),type="l",main="Production",xlab="Biomass",ylab="Annual Growth")
+lines(B,PT$par$M*B,col="green")
+pPar<-PT$par
+pPar$useMrate<-FALSE; lines(B,fnM(B,pPar),col="orange")
+abline(h=0,lty=5,col="black")
+abline(v=c(PT$B_pmax_givenM,PT$Bmax_dB,PT$B0),lty=c(5,5),col=c("black","red","blue"))
+}
+
+fnTimeToRecover<-function(Bfrom,Bto,par,M,YrsMax=500,Tol=1E-2){  # maximum years for projection
+               Brecovered<-Bto*(1-Tol)
+               B<-Bfrom
+               y<-1
+               while (B>0 & B<Brecovered & y<YrsMax) {
+                    Bp<-B
+                    B<-B*(1-M)+dB(B,par)
+                    if(B<0) B<-0
+                    y<-y+1
+                    }
+               if(B==0 | y==YrsMax) RecoveryTime<-Inf else RecoveryTime<-(Brecovered-Bp)/(B-Bp)+y-1
+                return(RecoveryTime)
+                } # end fnTimeToRecover
+
+fnTimeToP0<-function(Bfrom,P0,par,M,YrsMax=500){  # estimate time to reach production at B0 = B0*ePB
+               B<-Bfrom
+               P<-dB(B,par)
+               y<-1
+               while (P>P0 & y<YrsMax) {
+                    Pp<-P
+                    P<-dB(B,par)
+                    B<-B*(1-M)+P
+                    if(B<0) B<-0
+                    y<-y+1
+                    }
+               if(y==1) Time<-(-P/P0) else if(y==YrsMax) Time<-Inf else Time<-(P0-Pp)/(P-Pp)+y-1
+                return(Time)
+                } # end fnTimeToRecover
+```
+
+
+```{r fnMinim, echo=FALSE, eval=TRUE}
+
+# functions for minimisation routines
+
+findBmax_dB<-function(b,par){return(-log(dB(b,par)))}  # = 0.5K when phi=1
+findKrillB0<-function(b,par,bmax,pmax,p){prod<-dB(b,par)  
+                                         if(b<bmax) prod<-2*pmax-prod
+                                         if(b>par$K) prod<-pmax-prod
+                                         return((prod-p*pmax)^2)}
+findProdMaxGivenM<-function(b,par){return(-log(dB(b,par)-fnM(b,par)))} 
+
+```
+
+```{r notUsed, echo=FALSE, eval=FALSE}
+# r for production to match loss at given biomass
+findR_loss<-function(r,B,Loss,par){par$r<-r;return((dB(B,par)-Loss)^2)} 
+
+# find R to match recovery time (stable recruitment)
+find_R_recovery<-function(par,Ppar,Bmax_dB,B0,M,RecoveryYr){
+  Ppar$r<-par
+  Time<-fnTimeToP0(Bmax_dB,B0*M,Ppar,M,RecoveryYr)
+  res<-(Time-RecoveryYr)^2
+  return(res)
+  }
+
+
+findPhiRB0<-function(par,Ppar,RecoveryYr,ePB,B0propMax){
+#Ppar$phi<-par[1]
+Ppar$r<-par[1]
+Bmax_dB<-nlm(findBmax_dB,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
+#B0<-Bmax_dB+(Ppar$K-Bmax_dB)*par[3]
+B0<-nlm(findKrillB0,((Bmax_dB+Ppar$K)/2),Ppar,Bmax_dB,dB(Bmax_dB,Ppar),B0propMax)$estimate
+print(c(Bmax_dB,B0))
+M<-ePB
+Time<-fnTimeToP0(Bmax_dB,(B0*M),Ppar,M)
+print(Time)
+return((Time-RecoveryYr)^2)
+} # end findRB0
+
+#Bmax_dB<-nlm(findBmax_dB,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
+#Rmax<-Inf
+#Rmin<-nlm(findR_loss,1,Krill$Bmax_dB,Krill$Bmax_dB*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
+
+
+
+findPhi<-function(par,Ppar,ePB,PredKasPropKrillMaxProd,Yrs){
+Ppar$phi<-par
+Bmax_dB<-nlm(findBmax_dB,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
+B0<-nlm(findKrillB0,((Bmax_dB+Ppar$K)/2),Ppar,Bmax_dB,dB(Bmax_dB,Ppar),PredKasPropKrillMaxProd)$estimate
+Rmax<-nlm(findR_loss,1,B0,dB(B0,Ppar),Ppar)$estimate # perfect solution if it is possible
+Rmin<- (-log(Bmax_dB*(Ppar$K/B0-1)/(Ppar$K-Bmax_dB))/Yrs) # logistic without loss
+Ppar$r<-optimize(find_R_recovery,interval=c(Rmin,Rmax)
+                 ,Ppar=Ppar,Bmax_dB=Bmax_dB,B0=B0,M=dB(B0,Ppar)/B0,RecoveryYr=Yrs)$minimum
+return((dB(B0,Ppar)/B0-ePB)^2)
+} # end findPhi
+
+
+
+
+
+# in order to achieve an ePB of the value here, need to find the shape of the production curve first i.e. phi
+# That routine determines the main parameters here.  But they are redetermined here.
+
+#Krill$par$phi<-optimize(findPhi,interval=c(0.1,10),Ppar=Krill$par,ePB=Krill$ePB,PredKasPropKrillMaxProd=Pred$KasPropKrillMaxProd,Yrs=Krill$Recovery$Years)$minimum
+
+# with Phi then solve for the following:
+
+
+
+Rmax<-Inf
+Rmin<-nlm(findR_loss,1,Krill$Bmax_dB,Krill$Bmax_dB*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
+Krill$par$r<-optimize(find_R_recovery,interval=c(Rmin,Rmax)
+                 ,Ppar=Krill$par,Bmax_dB=Krill$Bmax_dB,B0=Krill$B0,M=dB(Krill$B0,Krill$par)/Krill$B0,RecoveryYr=Krill$Recovery$Years)$minimum
+
+```
+
+
+```{r runTimeParams, eval=TRUE, echo=FALSE}
+Yrs<-c(0:100)
+
+# plot parameters
+Xlim<-c(0,100)
+Ylim<-c(0,1)
+
+```
+
+#2. Krill model
+
+Krill is modelled as a biomass pool with production modelled as a Schaeffer production model.
+In a food web, krill would be expected to have a biomass stable somewhere around its maximum production but greater than when maximum production occurs.  Evolutionary stable strategies of predators would expect to have long-term population responses to short-term prey shortages that ensure the predator population reduces its demand on krill to be less than maximum krill production and not over-consume krill to the point that the population would be in irreversible decline i.e. the predator population remains too high and consume too much krill relative to the krill population and its production at the those levels. Adjustments by predators could include eating less krill per capita, starving to death (reducing population consumption), or reducing reproductive output (recruitent rate).  The rate of reduction in consumption of krill would be fast, medium and slow adjustments respectively.   
+
+The combined population effects of predator feeding, response to starvation, and adjustable reproductive rates on where the krill population will be stable can be explored using a simple predator-prey model that enables flexibility in productivity of krill as well as the different attributes of predators.
+
+The key attributes of a balanced system are that the total predator consumption is a proportion of the maximum available production of krill, the krill population is able to recover from the size at maximum production to the size at balance with predators in the time of the expected maximum age of the krill population (i.e. the recruitment rate is still stable), and the intrinsic rate of increase of krill is sufficient to achieve both these requirements. 
+
+```{r krill_model, echo=FALSE, eval=TRUE}
+Krill<-list(par = list(K = 100, r=1.8, phi=1E-3, M = NA, useMrate=FALSE, Mmax=NA, M50propK=0.1)
+            ,B0asPropKrillMaxProd=0.7
+            ,ePB = 3.1 # ecopath Production to Biomass ratio: Hill et al 2021 Euphausids
+            ) # end Krill
+Krill$Bmax_dB<-nlm(findBmax_dB,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
+Krill$B0<-nlm(findKrillB0,((Krill$Bmax_dB+Krill$par$K)/2),Krill$par,Krill$Bmax_dB,dB(Krill$Bmax_dB,Krill$par),Krill$B0asPropKrillMaxProd)$estimate
+Krill$par$Mmax<-dB(B0,Krill$par)/B0*(Krill$par$M50propK*Krill$par$K+B0)
+Krill$par$M<-dB(B0,Krill$par)/B0
+Krill$B_pmax_givenM<-nlm(findProdMaxGivenM,Krill$Bmax_dB,Krill$par)$estimate
+fnPlotPellaTomlinson(Krill,yrs=c(0,15),Trial$par$K*0.3,c(0,1.2))
+
+```
+
+#3. Predator model
+
+To determine population size at carrying capacity, start predator population at a low level and let expand.  Compare to when krill has a variable carrying capacity and see what happens.
+
+```{r pred_model,echo=FALSE,eval=TRUE}
+
+Pred<-list(NB = 1E6  # for scaling Holling
+           ,QBhat=NA  # calculate from prey maximum production
+           ,useHolling = FALSE
+           ,Holling = list(p50 = 0.2   # prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
+                           ,q = 0       # Holling curvature
+                           ,c=1         # relative impacts of predators on availability of prey
+                           ,g=3         # g>=1 delay in decline of effect of predator competition 
+                           ,doPC=FALSE) # adjust Holling for predator competition
+           ,Age99 = 60  # age at which abundance is 0.01 of age 0
+           ,PB    = 0.034 # baleen whales from Hill et al 2021
+           ,QB    = 5.306 # baleen whales from Hill et al 2021
+           ,RB    = 5.115 # baleen whales from Hill et al 2021
+           ,A     = 0.843 # baleen whales from Hill et al 2021
+           ,KasPropKrillMaxProd = 0.8  # scale QB to the proportion of max production by krill (1 = consume up to maximum production)
+           ) # end list 
+
+Pred$Holling$p50<- Krill$Bmax_dB*Pred$Holling$p50 # scale Holling functional response to krill
+
+# scaling predator to prey
+# The relationship of predator to prey at equilibrium is dependent on the biomass of krill at equilibrium,
+#       its productivity at the biomass (relative to maximum production) and the 
+#       consumption rate of the predators relative to its maximum consumption rate
+
+PredCompetition<-function(Bp,Bc,H){if(H$doPC) return(1/(Bp/(Bc*H$c))^H$g) else return(0)}
+fnHolling<-function(Bp,Bc,H){Bp^(H$q+1)/(H$p50^(H$q+1)+(Bp*(1+PredCompetition(Bp,Bc,H)))^(H$q+1))}
+
+# Predator B0: determined by krill production at Krill B0 and predator consumption/biomass
+Pred$B0<-dB(Krill$B0,Krill$par)/Pred$QB  # equivalent to predator K
+
+findPredQBmax<-function(im,qb,Cb0,Pb0,H){return((im*fnHolling(Pb0,Cb0,H)-qb)^2)} # QBmax
+
+Pred$QBmax<-nlm(findPredQBmax,(Pred$QB*Pred$B0),Pred$QB,Pred$B0,Krill$B0,Pred$Holling)$estimate
+
+Pred$M<-Pred$PB
+Pred$RB<-Pred$QB*Pred$A-Pred$PB
+
+xKrill<-seq(0,1,1E-3)*2*Krill$B0
+yPred<-seq(0,1,1E-1)*2*Pred$B0
+res<-do.call(rbind,lapply(yPred,function(Bc,Bp,H){
+         Ingest<-fnHolling(Bp,Bc,H)
+         Bc<-rep(Bc,length(Bp))
+         return(data.frame(Bc,Bp,Ingest))
+         },xKrill,Pred$Holling))
+res$Bc<-factor(res$Bc)
+p<-ggplot(res,aes(x=Bp,y=Ingest,colour=Bc))+geom_line()
+p
+
+
+```
+
+# 4. Fishery
+
+Currently catch limits are determined according to projections over a 10 year period to determine a constant catch that takes the population to target level over a 10-20 year projection.  (note here that fishing down a stock may be a higher rate using this application than might be implied for a 20 year period when the krill population is at the target level)
+
+
+```{r fishery,echo=FALSE,eval=TRUE}
+
+# decision rule parameters
+#   K_RefPt_0    <- 1  # need to determine K_RefPt_0 as the biomass with maximum production in the Schaeffer model
+
+K_target_0   <- 0.75
+K_critical_0 <- 0.2
+
+Time_for_recovery_min <- 20
+Time_for_recovery_max<-30
+Time_for_recovery<-(Time_for_recovery_max+Time_for_recovery_min)/2
+
+
+fnProjPopForTAC<-function(Bp,cF,projYrs,pP){
+    res<-Bp
+    for(y in c(1:projYrs)){
+     dP<-dB(Bp,pP$par)
+     Bp1<-Bp+dP-pP$M*Bp-cF
+     res<-c(res,Bp1)
+     Bp<-Bp1
+    }
+return(res)}
+
+  
+findTAC<-function(g,B0,Bt,Bl,projYrs,pP){
+  cF<-g*B0
+  Bp<-B0
+  res<-fnProjPopForTAC(Bp,cF,projYrs,pP)
+  return((res[length(res)]/B0-Bt)^2)
+}  
+Krill$M<-dB(Krill$B0,Krill$par)/Krill$B0
+
+Gamma<-nlm(findTAC,0,Krill$B0,Krill$Bmax_dB/Krill$B0,0.2,20,Krill)$estimate
+Gamma
+
+plot(c(0:20),fnProjPopForTAC(Krill$B0,Gamma*Krill$B0,20,Krill))
+
+#Krill$B0<-nlm(findB0,0.2*Krill$par$K,Krill$par)$estimate
+
+#Yield_target_0<-dB(K_target_0*Krill$B0,Krill$par)
+print(paste("Yield at target level = ",Yield_target_0,sep=""))
+
+
+
+# a check (dB(Krill$Bmax_dB,Krill$par)-Pred$QB)/Krill$B0
+```
+
+
+# 5. Trial projections
+
+```{r PopProj,echo=FALSE,eval=TRUE}
+fnProjYear<-function(B,pP,pC,pF=0){
+     dP<-dB(B$Bp,pP$par)
+     if(pC$useHolling) cC<-B$Bc*pC$QBmax*fnHolling(B$Bp,B$Bc,pC$Holling) else cC<-pP$M*B$Bp
+     cF<-pF
+     print(c(B$Bp,dP,cC,cF,B$Bc,cC*pC$A,B$Bc*(pC$RB+pC$M)))
+     Bp1<-B$Bp+dP-cC-cF
+     Bc1<-B$Bc+cC*pC$A-B$Bc*(pC$RB+pC$M)
+     return(list(Bp=Bp1,Bc=Bc1))
+      }
+
+
+pP<-Krill
+pC<-Pred
+pF<-0.01*Krill$B0
+
+B<-list(Bp=pP$B0, Bc=pC$B0)
+Year<-seq(0,100,1)
+res<-data.frame(B)
+for(i in Year[-1]){
+  B<-fnProjYear(B,pP,pC,pF)
+  res<-rbind(res,B)
+ }
+res<-cbind(Year,res)
+
+plotBp<-res[,"Bp"]/Krill$B0
+plotBc<-res[,"Bc"]/Pred$B0
+Ylim<-c(0,max(c(plotBp,plotBc)))
+plot(Year,plotBp,type="l",ylim=Ylim)
+lines(Year,plotBc,col="red")
+abline(h=c(1,Krill$Bmax_dB/Krill$B0),lty=c(5,5))
+
+```
+
+# 6. Scenarios
+
+```{r Scenario_1, echo=FALSE, eval=TRUE}
+#######################################################################
+# Scenario 1 : no change in Carrying Capacity
+
+plot(NA,NA,xlim=Xlim,ylim=Ylim,xlab="Year",ylab="Population Status", main="Constant Carrying Capacity")
+Yrs<-c(Xlim[1]:Xlim[2])
+
+# lines to reflect where the decision rules relate to over time in reference to the initial reference point at time 0
+
+RefPt_neutral<-matrix(c(Xlim,1,1),ncol=2)
+Target_neutral<-matrix(c(Xlim,RefPt_neutral[,2]*0.75),ncol=2)
+Critical_neutral<-matrix(c(Xlim,RefPt_neutral[,2]*0.2),ncol=2)
+
+lines(RefPt_neutral[,1],RefPt_neutral[,2],lty=4,col="red")
+lines(Target_neutral[,1],Target_neutral[,2],lty=2,col="red")
+lines(Critical_neutral[,1],Critical_neutral[,2],lty=3,col="red")
+
+# vertical lines separating the different time periods in the simulation
+
+Yrs<-c(Xlim[1]:Xlim[2])
+Yr_Fishing_start<-10
+Yr_Fishing_end<-70
+Yr_recovery_min<-Yr_Fishing_end+Time_for_recovery_min
+Yr_recovery_max<-Yr_recovery_min+Time_for_recovery_max-Time_for_recovery_min
+abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=c(3,3,5,5))
+
+# stock trajectory
+
+B<-K_RefPt_0
+Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+
+for (i in 2:length(Yrs)) {
+  deltaB<-dB(B[(i-1)],K_RefPt_0,K_r_0,phi)
+  if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
+#  print(c(Yrs[i],deltaB,Catch))
+  
+  B<-c(B,(B[(i-1)]+deltaB-Catch)) 
+}
+
+
+lines(Yrs,(B/K_RefPt_0),lty=1)
+
+
+
+#######################################################################
+# Scenario 2 : declining carrying capacity with no change in yield (target levels and critical levels are adjusted as proportion)
+
+plot(NA,NA,xlim=Xlim,ylim=Ylim,xlab="Year",ylab="Population Status", main="Declining Carrying Capacity")
+Yrs<-c(Xlim[1]:Xlim[2])
+
+
+# lines to reflect where the decision rules relate to over time in reference to the initial reference point at time 0
+Kgrad<- (-0.01)
+Yr_startDecline<-40
+RefPt<-rep(K_RefPt_0,length(Yrs))
+RefPt[Yrs>Yr_startDecline]<-K_RefPt_0+Kgrad*(Yrs[Yrs>Yr_startDecline]-Yr_startDecline)
+Target<-RefPt*K_target_0
+Critical<-RefPt*K_critical_0
+
+lines(Yrs,RefPt,lty=4,col="red")
+lines(Target,lty=2,col="red")
+lines(Critical,lty=3,col="red")
+
+# vertical lines separating the different time periods in the simulation
+
+Yrs<-c(Xlim[1]:Xlim[2])
+Yr_Fishing_start<-10
+Yr_Fishing_end<-70
+Yr_recovery_min<-Yr_Fishing_end+Time_for_recovery_min
+Yr_recovery_max<-Yr_recovery_min+Time_for_recovery_max-Time_for_recovery_min
+abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=c(3,3,5,5))
+
+# stock trajectory
+
+B<-K_RefPt_0
+Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+
+for (i in 2:length(Yrs)) {
+  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
+#  print(c(Yrs[i],deltaB,Catch))
+  
+  B<-c(B,(B[(i-1)]+deltaB-Catch)) 
+}
+
+
+lines(Yrs,(B/B[1]),lty=1)
+
+#######################################################################
+# Scenario 3 : rapid shift in carrying capacity and then stable
+
+plot(NA,NA,xlim=Xlim,ylim=Ylim,xlab="Year",ylab="Population Status", main="Rapid shift in Carrying Capacity")
+Yrs<-c(Xlim[1]:Xlim[2])
+
+
+# lines to reflect where the decision rules relate to over time in reference to the initial reference point at time 0
+Kgrad<- (-0.05)
+Yr_startDecline<-40
+Yr_endDecline<-45
+RefPt<-rep(K_RefPt_0,length(Yrs))
+RefPt[Yrs>Yr_startDecline]<-K_RefPt_0+Kgrad*(Yrs[Yrs>Yr_startDecline]-Yr_startDecline)
+RefPt[Yrs>Yr_endDecline]<-RefPt[sum(Yrs<=Yr_endDecline)]
+
+Target<-RefPt*K_target_0
+Critical<-RefPt*K_critical_0
+
+
+lines(Yrs,RefPt,lty=4,col="red")
+lines(Target,lty=2,col="red")
+lines(Critical,lty=3,col="red")
+
+# vertical lines separating the different time periods in the simulation
+
+Yrs<-c(Xlim[1]:Xlim[2])
+Yr_Fishing_start<-10
+Yr_Fishing_end<-70
+Yr_recovery_min<-Yr_Fishing_end+Time_for_recovery_min
+Yr_recovery_max<-Yr_recovery_min+Time_for_recovery_max-Time_for_recovery_min
+abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=c(3,3,5,5))
+
+# stock trajectory
+
+B<-K_RefPt_0
+Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+
+for (i in 2:length(Yrs)) {
+  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
+  B<-c(B,(B[(i-1)]+deltaB-Catch)) 
+}
+
+
+lines(Yrs,(B/B[1]),lty=1)
+
+#######################################################################
+# Scenario 4 : catstrophic shift of stock abundance due to change in food web - leading to change in critical level
+
+plot(NA,NA,xlim=Xlim,ylim=Ylim,xlab="Year",ylab="Population Status", main="Rapid shift in Carrying Capacity & Catastrophic change")
+Yrs<-c(Xlim[1]:Xlim[2])
+
+
+# lines to reflect where the decision rules relate to over time in reference to the initial reference point at time 0
+Kgrad<- (-0.05)
+Yr_startDecline<-40
+Yr_endDecline<-45
+RefPt<-rep(K_RefPt_0,length(Yrs))
+RefPt[Yrs>Yr_startDecline]<-K_RefPt_0+Kgrad*(Yrs[Yrs>Yr_startDecline]-Yr_startDecline)
+RefPt[Yrs>Yr_endDecline]<-RefPt[sum(Yrs<=Yr_endDecline)]
+
+Target<-RefPt*K_target_0
+Critical<-RefPt*K_critical_0
+
+# catastrophic shift in stock status at 50 years and change in critical level
+CritGrad<- (0.0005)
+Yr_catastrophe<-50
+Critical[Yrs>Yr_catastrophe]<-1.2*Critical[sum(Yrs<=Yr_catastrophe)]+CritGrad*(Yrs[Yrs>Yr_catastrophe]-Yr_catastrophe)
+
+
+
+lines(Yrs,RefPt,lty=4,col="red")
+lines(Target,lty=2,col="red")
+lines(Critical,lty=3,col="red")
+
+# vertical lines separating the different time periods in the simulation
+
+Yrs<-c(Xlim[1]:Xlim[2])
+Yr_Fishing_start<-10
+Yr_Fishing_end<-70
+Yr_recovery_min<-Yr_Fishing_end+Time_for_recovery_min
+Yr_recovery_max<-Yr_recovery_min+Time_for_recovery_max-Time_for_recovery_min
+abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=c(3,3,5,5))
+
+# stock trajectory
+
+B<-K_RefPt_0
+Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+
+for (i in 2:length(Yrs)) {
+  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
+  if(Yrs[i]==Yr_catastrophe) deltaB<-(-0.5*B[length(B)])
+  B<-c(B,(B[(i-1)]+deltaB-Catch)) 
+}
+
+
+lines(Yrs,(B/B[1]),lty=1)
+
+
+```

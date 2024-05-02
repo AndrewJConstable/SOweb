@@ -4,16 +4,16 @@
 # Variable definitions:
 # https://clipc-services.ceda.ac.uk/dreq/mipVars.html
 
-#October 2021: Tilo provide surface temperature and sea ice monthly means for COP 26 animation
-#              also provided global warming level (see emails from 26 October 2021)
-
 # extractions undertaken using code in MEASO_ACCESS_ESM_15_SSP585.R
 
 # This file generates a dataframe of
-#  Var       : Variable
+# 
 #  MEASO     : MEASO area
-#  y2000     : weighted area median for 20 year period 1981-2000
-#  y2100     : weighted area median for 20 year period 2081-2100 
+#  Depth     : LT2000m, DT2000m, All
+#  Var1
+#  Var2
+#  ...
+#  Var.n
 
 # 1. Notes ####
 #   * ACCESS ocean and ice models use irregular grid with longitude range 0-360 (Vars: thetao, siconc, mlotst)
@@ -40,6 +40,7 @@ domainBounds<-list(limLon=c(0,360),limLat=c(-80,-30),resolution=0.1) # also for 
 #         2.2 Directories ####
 rootData<-"/Users/acon/Desktop/_w/_d/ACCESS-ESM1.5\ SSP585/"
 rootMEASOshp<-"/Users/acon/Desktop/_w/_d/Shapefiles/MEASO polygons/"
+rootTimeSeries<-"/Users/acon/Desktop/_w/_d/ACCESS-ESM1.5\ SSP585/timeseries/"
 
 #         2.3 Files ####
 fCellAreaO     <- "areacello_Ofx_ACCESS-ESM1-5_ssp585_r10i1p1f1_gn.nc" # Cell Areas - ocean/ice grid
@@ -47,26 +48,59 @@ fCellAreaAtmos <- "areacella_fx_ACCESS-ESM1-5_ssp585_r10i1p1f1_gn.nc"
 
 fMEASOshp<-"MEASO_polygons.shp"
 
-fVar<-list(root   = "/Users/acon/Desktop/_w/_d/ACCESS-ESM1.5 SSP585/"
+fVar<-list(root   = "/Users/acon/Desktop/_w/_d/ACCESS-ESM1.5\ SSP585/timeseries/"
           ,ext    = ".Rdata"
           ,temp   = list(var   = "thetao"
-                        ,early = "1981-2000"
-                        ,late  = "2080-2099")
+                        ,y1900 = "1900-1919"
+                        ,y1920 = "1920-1939"
+                        ,y1940 = "1940-1959"
+                        ,y1960 = "1960-1979"
+                        ,y1980 = "1980-1999"
+                        ,y2000 = "2000-2019"
+                        ,y2020 = "2020-2039"
+                        ,y2040 = "2040-2059"
+                        ,y2060 = "2060-2079"
+                        ,y2080 = "2080-2099")
           ,SeaIce = list(var   = "siconc"
-                        ,early = "1981-2000"
-                        ,late  = "2080-2099")
+                         ,y1900 = "1900-1919"
+                         ,y1920 = "1920-1939"
+                         ,y1940 = "1940-1959"
+                         ,y1960 = "1960-1979"
+                         ,y1980 = "1980-1999"
+                         ,y2000 = "2000-2019"
+                         ,y2020 = "2020-2039"
+                         ,y2040 = "2040-2059"
+                         ,y2060 = "2060-2079"
+                         ,y2080 = "2080-2099")
           ,MLD    = list(var   = "mlotst"
-                        ,early = "1981-2000"
-                        ,late  = "2080-2099")
+                         ,y1900 = "1900-1919"
+                         ,y1920 = "1920-1939"
+                         ,y1940 = "1940-1959"
+                         ,y1960 = "1960-1979"
+                         ,y1980 = "1980-1999"
+                         ,y2000 = "2000-2019"
+                         ,y2020 = "2020-2039"
+                         ,y2040 = "2040-2059"
+                         ,y2060 = "2060-2079"
+                         ,y2080 = "2080-2099")
           ,light  = list(var   = "rsds"
-                        ,early = "1981-2000"
-                        ,late  = "2080-2099")
-           ) # end fVar
+                         ,y1900 = "1900-1919"
+                         ,y1920 = "1920-1939"
+                         ,y1940 = "1940-1959"
+                         ,y1960 = "1960-1979"
+                         ,y1980 = "1980-1999"
+                         ,y2000 = "2000-2019"
+                         ,y2020 = "2020-2039"
+                         ,y2040 = "2040-2059"
+                         ,y2060 = "2060-2079"
+                         ,y2080 = "2080-2099")
+) # end fVar
 
 #         2.4 Variable and month Data files to use ####
 
 useVar<-c("light","MLD","temp","SeaIce")
 useMonth <-c(11,12)
+DepthBreak<-2000  # NA means return only ALL
 
 # 3. Functions ####
 #         3.1 weighted percentiles from vectors of data, weights ####
@@ -285,75 +319,90 @@ fnWtsAtmos<-function(){
 wtsO<-fnWtsOcean()
 wtsA<-fnWtsAtmos()
 
-MEASOsummary<-lapply(useVar,function(v,m,fV,wO,wA){
-  root<-paste0(fV$root,v,"/",fV[[v]]$var,"_y")
+MEASOsummary<-do.call(rbind,lapply(useVar,function(v,m,fV,wO,wA){
+  root<-paste0(fV$root,fV[[v]]$var,"_y")
   ext<-paste0("_m",paste(sprintf("%02d",m),collapse="_"),fV$ext)
-  dEarly<-do.call(cbind,readRDS(paste0(root,fV[[v]]$early,ext)))
-  dLate<-do.call(cbind,readRDS(paste0(root,fV[[v]]$late,ext)))
+  vVar<-fV[[v]]$var
+  vFiles<-fV[[v]][-1]
+  nYrs<-length(vFiles)
   
-  if(v=="light"){ # median in space - average energy per day at the surface
-    # use weights wA
-    return(do.call(rbind,lapply(c(1:ncol(wA)),function(i,mCwts,rE,rL){
-      return(data.frame(var = v,measo = i,early = PCweighted(c(0.5),rE, mCwts[,i])
-               ,late = PCweighted(c(0.5),rL, mCwts[,i])))
-      },wA,dEarly[,fV[[v]]$var],dLate[,fV[[v]]$var])))
-  } else if(v=="MLD") { # median in space - average mixed layer depth
-    # use weights wO
-    return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,rE,rL){
-      return(data.frame(var = v,measo = i,early = PCweighted(c(0.5),rE, mCwts[,i])
-                        ,late = PCweighted(c(0.5),rL, mCwts[,i])))
-    },wO,dEarly[,fV[[v]]$var],dLate[,fV[[v]]$var])))
-  } else if(v=="SeaIce") { # weighted mean - sea ice concentration (prop of area that is sea ice)
-    # use weights wO
-    return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,rE,rL){
-      return(data.frame(var = v,measo = i,early = MeanWeighted(rE, mCwts[,i])
-                        ,late = MeanWeighted(rL, mCwts[,i])))
-    },wO,dEarly[,fV[[v]]$var],dLate[,fV[[v]]$var])))
-  } else if(v=="temp") { # median in space - average temperature
-    # use weights wO
-    return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,rE,rL){
-      return(data.frame(var = v,measo = i,early = PCweighted(c(0.5),rE, mCwts[,i])
-                        ,late = PCweighted(c(0.5),rL, mCwts[,i])))
-    },wO,dEarly[,fV[[v]]$var],dLate[,fV[[v]]$var])))
-  }
-},useMonth,fVar,wtsO,wtsA)
+  
+  r1<-do.call(rbind,lapply(c(1:nYrs),function(i,vF,vVar,v,m,fV,wO,wA){
+          y<-as.numeric(substr(names(vF)[i],2,5))
+          dV<-do.call(cbind,readRDS(paste0(root,vF[[i]],ext)))
 
-names(MEASOsummary)<-useVar
-saveRDS(MEASOsummary,"MEASOareaSummary.rds")
+       if(v=="light"){ # median in space - average energy per day at the surface
+            # use weights wA
+             return(do.call(rbind,lapply(c(1:ncol(wA)),function(i,mCwts,dV,y){
+               return(data.frame(var = v,measo = i,year = y,data = PCweighted(c(0.5),dV, mCwts[,i])))
+            },wA,dV[,vVar],y)))
+       } else if(v=="MLD") { # median in space - average mixed layer depth
+             # use weights wO
+             return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,dV,y){
+               return(data.frame(var = v,measo = i,year = y,data = PCweighted(c(0.5),dV, mCwts[,i])))
+            },wO,dV[,vVar],y)))
+       } else if(v=="SeaIce") { # weighted mean - sea ice concentration (prop of area that is sea ice)
+              # use weights wO
+              return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,dV,y){
+                return(data.frame(var = v,measo = i,year = y,data = MeanWeighted(dV, mCwts[,i])))
+            },wO,dV[,vVar],y)))
+       } else if(v=="temp") { # median in space - average temperature
+              # use weights wO
+              return(do.call(rbind,lapply(c(1:ncol(wO)),function(i,mCwts,dV,y){
+                return(data.frame(var = v,measo = i,year = y,data = PCweighted(c(0.5),dV, mCwts[,i])))
+            },wO,dV[,vVar],y)))
+       } # end temp
+  },vFiles,vVar,v,m,fV,wO,wA)) # end variable files
+  return(r1)
+  },useMonth,fVar,wtsO,wtsA))
+
+saveRDS(MEASOsummary,"MEASOareaTimeSeriesSummary.rds")
 
 #   1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
 MEASOnames<-c("AOA", "AON", "AOS", "CIA", "CIN", "CIS", "EIA", "EIN", "EIS", "EPA", "EPN", "EPS", "WPA", "WPN", "WPS")
+SectorColours<-viridis(5)
+MEASOcolours<-do.call(c,lapply(SectorColours,function(sc){rep(sc,3)}))
+MEASOpoints<-rep(c(1,0,5),5)
 
+# create nMDS matrix - standardise data sets
+dnmds<-as.data.frame(do.call(cbind,lapply(useVar,function(v,d){
+  d1<-d[d[,"var"]==v,"data"]
+  print(d1)
+  return((d1-mean(d1,na.rm=TRUE))/sd(d1,na.rm=TRUE))
+  },MEASOsummary)))
+names(dnmds)<-useVar
 
-# create vector of polygons out of early or late dataset
-# give the values of the polygons as the weights 
-# plot shape files and overlay with dfO and dfA cell areas 
-# plot shape files and overlay with early/late polygons coloured as the weights 
+set.seed(123)
+rnmds=metaMDS(dnmds,distance="euclidean")
+rnmds
+snmds<-as.data.frame(scores(rnmds))
+snmds<-cbind(MEASOsummary[MEASOsummary[,"var"]==useVar[1],c("measo","year")],snmds)
+snmds<-snmds[order(snmds[,"measo"],snmds[,"year"]),]
+snmds[,"MEASOarea"]<-factor(MEASOnames[snmds[,"measo"]])
 
+plotPoints1900<-snmds[snmds[,"year"]==1900,]
+plotPoints2020<-snmds[snmds[,"year"]==2020,]
 
-#plot(vCellsO, y="area")
+p <- ggplot(snmds, aes(x = NMDS1, y = NMDS2)) 
+p <- p+  geom_path(aes(colour = MEASOarea))
+p <- p+ scale_color_manual(values=MEASOcolours)
+p <- p+ geom_point(data=plotPoints1900
+                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=4)
+p <- p+ geom_point(data=plotPoints2020
+                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=2)
+p <- p+ scale_shape_manual(values=MEASOpoints,labels=MEASOnames)
+p <- p+ geom_text(x=1, y=2, label="Stress < 0.001")
+p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold")
+              , axis.text.x = element_text(colour = "black", face = "bold", size = 12)
+                     ,legend.text = element_text(size = 12, face ="bold", colour ="black") 
+                     ,legend.position = "right"
+                      ,legend.title = element_text(size = 14, colour = "black", face = "bold")
+              , axis.title.y = element_text(face = "bold", size = 14) 
+              , axis.title.x = element_text(face = "bold", size = 14, colour = "black") 
+              , panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2)
+                ,legend.key=element_blank()
+)# end theme
+p <- p+ labs(x = "NMDS1", y = "NMDS2")
 
-tmp<-vCellsO
-tmpWts<-wtsO
+p
 
-Ncols<-50
-tmpRamp<-viridis(Ncols+1)
-valWts<-as.vector(tmpWts)
-valWts<-valWts[!(valWts==0 | is.na(valWts))]
-AreaMin<-min(valWts)
-AreaMax<-max(valWts)
-
-plot(MEASOshp)
-tmp$area[tmp$area==0]<-NA
-tmpCols<-tmpRamp[round((tmp$area-AreaMin)/(AreaMax-AreaMin)*Ncols+1)]
-polys(tmp, col=tmpCols, border=NA)
-
-plot(MEASOshp)
-for(i in c(1:15)) {
-  tmp$area<-tmpWts[,i]
-  tmp$area[tmp$area==0]<-NA
-#  plot(tmp,"area")
-  tmpCols<-tmpRamp[round((tmp$area-AreaMin)/(AreaMax-AreaMin)*Ncols+1)]
-#  plot(MEASOshp,main=paste0("MEASO ",MEASOnames[i]))
-  polys(tmp, col=tmpCols, border=NA)
-}

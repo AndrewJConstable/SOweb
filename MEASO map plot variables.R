@@ -1,92 +1,196 @@
 # Script to plot variables - current and future states - for each MEASO area
+# by Andrew J. Constable
+# April 2024
+
+# Functions to plot graphic summarising depth and for two times (early, late) the following variables:
+#     sea ice, light, temperature, MLD
+
+# 1.0 Notes ####
+
+
+# 2.0 Setup for trials ####
+
+#           2.1 Libraries ####
 
 library(ggplot2)
 library(ggforce)
-# Surface Temperature - November-December
+library(terra)
 
+#   2.2 Layout of one plot ####
+#       2.2.1 Object (o) dimensions ####
 
-# 
+# Depth
+oD <- list(rect = list(xmax=0.5,ymin=0,h=0.75) # depth is plotted to the left of xmax, the width of x is dependent on log10 area
+           ,unit         = 1E6   # if NA then log10 transform
+           ,XpropPerUnit = 0.04 # proportion of X range of box per unit (on log10 scale or per unit)
+           ,Xstart       = 0)    # if  then no log transform otherwise units of area on log10 scale
 
+# Light
+oL <- list(sun = list(x0 = 0.6, y0 = 0.8, r0 = 0.05, rayLen = 0.03, rayN =12)  # x0,y0 = centre of circle as proportions of ranges
+                                                                               # r0=radius as proportion of Xlim[2]
+                                                                               # rayLen as proportion of r0; rayN = number of rays 
+           ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges 
+           ,Lmin = 200                      # plotting values = minimum light
+           ,Lmax = 280                    # maximum light
+           ,Ints = 7                     # number of intervals
+           ) # light
 
-Xlim<-c(0,100)
+# Temperature
+oT <- list(bulb = list(x0 = 0.75, y0 = 0.2, r0 = 0.05)  # as for light
+           ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges
+           ,Tmin = -2                     # minimum temperature
+           ,Tmax = 14                     # maximum temperature
+           ,Ints = 16                     # number of intervals
+           ) # temp
+
+# Mixed Layer Depth
+oM <- list(wave = list(x0 = 0.9, y0 = 0.8, w = 0.1, h = 0.33, t=2) # as for light - thickness (t) is in sine units
+           ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges
+           ,MLmin = 30                     # minimum MLD
+           ,MLmax = 60                   # maximum MLD
+           ,Ints = 6                     # number of intervals
+           ) # MLD
+
+# Sea ice (on top of depth polygon)
+oS <- list(rect = list(xmax = oD$rect$xmax,ymin=0.8,h=0.2)
+           ,unit            = oD$unit   # if NA then log10 transform
+           ,XpropPerUnit    = oD$XpropPerUnit
+           ,Xstart          = oD$Xstart)
+
+#   2.3 Trial Data ####
+#       2.3.1 Plot Summary rectangle ####
+
+Xlim<-c(0,100) # Layout dimensions are proportions of these ranges (keep minima to 0)
 Ylim<-c(0,25)
-# all inputs are proportions of max X and Y
 
-# depth ####
+#       2.3.2 Input data ####
 
-oD <- list(rect = list(xmax=0.2,ymin=0,h=0.75)
-           ,XpropPerLog10 = 0.04
-           ,XstartLog10 = 6)
+# GEBCO data 2023
 
-Depth<-list(area  = 154333000
-           ,depth = c(1000,2000,3000,4000)
-           ,prop  = c(0.1,0.05,0.05,0.2))
+gebco23<-rast("/Users/acon/Desktop/_w/_d/GEBCO_10_Apr_2024_41650c45d0e9/GEBCO23 Southern Ocean.tif")
+names(gebco23)<-"height"
 
-# light ####
+# MEASO areas
+rootMEASOshp<-"/Users/acon/Desktop/_w/_d/Shapefiles/MEASO polygons/"
+fMEASOshp<-"MEASO_polygons.shp"
 
-Light<-list(MidWinterPropNight = 0.7
-            ,early = 20
-            ,late = 60
-             )
+MEASOshp<-vect(paste0(rootMEASOshp,fMEASOshp))
+MEASOshp<-project(MEASOshp,gebco23)
 
-oL <- list(sun = list(x0 = 0.3, y0 = 0.8, r0 = 0.05, rayLen = 0.02, rayN =30)  # r0=radius as proportion of Xlim[2]
-           ,rect = list(w = 0.05,h = 0.6)
-           ,Lmin = 0
-           ,Lmax = 100
-           ,Ints = 10 # number of intervals
-)
+#   1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
+MEASOnames<-c("AOA", "AON", "AOS", "CIA", "CIN", "CIS", "EIA", "EIN", "EIS", "EPA", "EPN", "EPS", "WPA", "WPN", "WPS")
+dDepth<-readRDS(file="/Users/acon/Desktop/_w/_r/SOweb/Input\ Data\ Processing/DepthProfile.rds")
+MEASOsummary<-readRDS("/Users/acon/Desktop/_w/_r/SOweb/Input\ Data\ Processing/MEASOareaSummary.rds")
+
+MEASOareaLimits<-list(minimum  = min(unlist(lapply(dDepth,function(d){d$TotalArea*min(d$prop[d$prop>0])})),na.rm=TRUE)
+                      ,maximum = max(unlist(lapply(dDepth,function(d){d$TotalArea})),na.rm=TRUE))
+MEASOareaLimits
+
+MEASOlimits<-lapply(MEASOsummary,function(s){
+  return(c(min(s[,ncol(s)],na.rm=TRUE),max(s[,ncol(s)],na.rm=TRUE)))
+})
+MEASOlimits # check limits in object data are correct
+
+MEASOareaSummary<-lapply(c(1:15),function(m,n,d,s){
+  return(list(Depth = dDepth[[m]]
+             ,Light = list(early = s[["light"]][s[["light"]][,"measo"]==m,"early"]
+                          ,late = s[["light"]][s[["light"]][,"measo"]==m,"late"]
+                          ) # end Light
+             ,Temp  = list(early = s[["temp"]][s[["temp"]][,"measo"]==m,"early"]
+                          ,late = s[["temp"]][s[["temp"]][,"measo"]==m,"late"]
+                          ) # end Temp
+             ,MLD   = list(early = s[["MLD"]][s[["MLD"]][,"measo"]==m,"early"]
+                          ,late = s[["MLD"]][s[["MLD"]][,"measo"]==m,"late"]
+                          ) # end MLD
+             ,SeaIce = list(MEASOarea  = dDepth[[m]]$TotalArea
+                           ,conc95 = list(early = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"early"], late = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"late"])
+                           ,conc75 = list(early = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"early"], late = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"late"])
+                           ,conc25 = list(early = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"early"], late = s[["SeaIce"]][s[["SeaIce"]][,"measo"]==m,"late"])
+                            ) # end SeaIce
+               )) # end list and return
+},MEASOnames,dDepth,MEASOsummary)
 
 
-# temperature ####
-Tearly<- 1.2
-Tlate <- 5.4
+#       2.3.3 Trial plot data ####
 
-oT <- list(bulb = list(x0 = 0.45, y0 = 0.2, r0 = 0.05)  # r0=radius as proportion of Xlim[2]
-           ,rect = list(w = 0.05,h = 0.6)
-           ,Tmin = -2
-           ,Tmax = 10
-           ,Ints = 11 # number of intervals
-)
+doTicks<-list(depth=FALSE, light=FALSE,temp=FALSE, MLD=FALSE, ice=FALSE)
+Colours<-list(depth = list(bg = "white", main = "black")
+              ,light = list(bg = "white", main = "black")
+              ,temp  = list(bg = "white", main = "black")
+              ,MLD   = list(bg = "white", main = "black")
+              ,ice   = list(bg = "white", c95 = "white", c75 = "grey", c25 = "black")
+              )# end colours
 
-# mixed layer depth ####
-MLD<-list(early = 100
-          ,late =150)
+MEASOcolRGBA<-matrix(c(2,    226, 20, 20, 1
+                       ,3,    242,113,113, 1
+                       ,1,    249,188,188, 1
+                       ,5,    236,133, 69, 1
+                       ,6,    243,177,136, 1                 
+                       ,4,    249,215,194, 1
+                       ,8,    135,141,199, 1                   
+                       ,9,    176,180,217, 1
+                       ,7,    209,211,233, 1
+                       ,11,    75,125,126, 1
+                       ,12,    95,158,160, 1
+                       ,10,   160,197,199, 1
+                       ,14,   132, 57,116, 1
+                       ,15,   198,122,181, 1
+                       ,13,   225,184,216, 1),ncol=5,byrow=TRUE)
+dimnames(MEASOcolRGBA)[[2]]<-c("Area","R","G","B", "Alpha")
+mc<-MEASOcolRGBA[order(MEASOcolRGBA[,"Area"]),]
+MEASOcols<-rgb(red=mc[,"R"],green=mc[,"G"],blue=mc[,"B"],names=MEASOnames,maxColorValue = 255)
 
-oM <- list(wave = list(x0 = 0.6, y0 = 0.8, w = 0.1, h = 0.33, t=2) # thickness is in sine units
-           ,rect = list(w = 0.05,h = 0.6)
-           ,MLmin = 0
-           ,MLmax = 500
-           ,Ints = 10 # number of intervals
-)
+# test colours
+library(colorspace)
+demoplot(MEASOcols,type="bar")
+detach(package:colorspace,unload=TRUE) # logical is for detaching namespace as well
 
-# sea ice ####
 
-oS <- list(rect = list(xmax=oD$rect$xmax,ymin=0.8,h=0.2)
-           ,XpropPerLog10 = oD$XpropPerLog10
-           ,XstartLog10 = oD$XstartLog10)
+# 3.0 Functions ####
+plotMEASOareaSummary<-function(dIn,oD,oL,oT,oM,oS,Xlim,Ylim,doTicks,Colours,ContShelf=TRUE){ # ContShelf is to plot seabed area from left, else island/bank
 
-SeaIce<-list(MEASOarea  = Depth$area
-             ,OctAreaConc95 = list(early = Depth$area*0.85, late = Depth$area*0.5)
-             ,OctAreaConc75 = list(early = Depth$area*0.5, late = Depth$area*0.3)
-             ,OctAreaConc25 = list(early = Depth$area*0.3, late = Depth$area*0.1)
-) # end SeaIce
-
-########## Calculations ####
-
+  # breakup input data
+  Depth  <- dIn$Depth
+  Light  <- dIn$Light
+  Temp   <- dIn$Temp
+  MLD    <- dIn$MLD
+  SeaIce <- dIn$SeaIce
+  
+  
 # depth polygon calculations ####
-
-oD$box<-list(xmin = (oD$rect$xmax-(log10(Depth$area)-oD$XstartLog10)*oD$XpropPerLog10)*Xlim[2]
+Xrange<- if(is.na(oD$unit)) (log10(Depth$TotalArea)-oD$Xstart) else (Depth$TotalArea-oD$Xstart)/oD$unit
+oD$box<-list(xmin = (oD$rect$xmax-Xrange*oD$XpropPerUnit)*Xlim[2]
              ,xmax = oD$rect$xmax*Xlim[2]
              ,ymin = oD$rect$ymin*Ylim[2]
              ,ymax = (oD$rect$ymin+oD$rect$h)*Ylim[2])
 
-oD$box<-c(oD$box,list(
-  ticksX = (c(seq(oD$XstartLog10,floor(log10(Depth$area)),1),log10(Depth$area))-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
-  ,ticksY = (oD$rect$ymin+oD$rect$h)*Ylim[2]-seq(0,Depth$depth[length(Depth$depth)],1000)/Depth$depth[length(Depth$depth)]*oD$rect$h *Ylim[2]
-  ,poly = data.frame(x=  (c(oD$XstartLog10,log10(cumsum(Depth$prop)*Depth$area),oD$XstartLog10)-oD$XstartLog10)*oD$XpropPerLog10*Xlim[2]+oD$box$xmin
-                     ,y= ((oD$rect$ymin+oD$rect$h)*Ylim[2]-c(0,Depth$depth,Depth$depth[length(Depth$depth)])/Depth$depth[length(Depth$depth)]*oD$rect$h*Ylim[2]))
-))
+  # if ContShelf=TRUE then plot bottom profile from left, else split profile in centre to represent islands/banks
+  # also need to scale bottom profile to max height when less than 0
+  useProp<-Depth$prop>0
+  X0    <- if(is.na(oD$unit)) 10^oD$Xstart else oD$Xstart
+  
+  dX<-c(X0,Depth$prop[useProp]*Depth$TotalArea)
+  OriginDepth<-if(Depth$MaxHeight>=0) 0 else Depth$MaxHeight 
+  dY<-c(OriginDepth,Depth$depth[useProp])   
 
+  dX<-c(dX,dX[1]); dY<-c(dY,dY[length(dY)]) # returning the line to close the polygon
+
+  if(is.na(oD$unit)){  
+  dX <-(log10(dX)-oD$Xstart)*oD$XpropPerUnit*Xlim[2]+oD$box$xmin
+  } else {
+  dX <-  (dX-oD$Xstart)/oD$unit*oD$XpropPerUnit*Xlim[2]+oD$box$xmin
+  }
+
+  dY<-(oD$rect$ymin+oD$rect$h)*Ylim[2]-dY/Depth$depth[length(Depth$depth)]*oD$rect$h*Ylim[2]
+  
+xTickLast<- if(is.na(oD$unit)) floor(log10(Depth$TotalArea)-oD$Xstart) else floor((Depth$TotalArea-oD$Xstart)/oD$unit)
+xTickEnd <- if(is.na(oD$unit)) (log10(Depth$TotalArea)-oD$Xstart) else (Depth$TotalArea--oD$Xstart)/oD$unit
+
+oD$box<-c(oD$box,list(
+  ticksX =  c(seq(0,xTickLast,1),xTickEnd)*oD$XpropPerUnit*Xlim[2]+oD$box$xmin # need to correct if not continental shelf
+  ,ticksY = (oD$rect$ymin+oD$rect$h)*Ylim[2]-seq(0,Depth$depth[length(Depth$depth)],-1000)/(-Depth$depth[length(Depth$depth)])*oD$rect$h *Ylim[2]
+  ,poly = data.frame(x= dX, y= dY)
+))
 
 # light calculations ####
 oL$sun$x<-oL$sun$x0*Xlim[2]
@@ -143,8 +247,8 @@ oT$ticksX <- oT$rect$xmin+ oT$rect$w*Xlim[2]*c(0.4,0.6)
 
 oT$tempShape <-data.frame(x = c(oT$rect$xmin,oT$rect$xmin,oT$rect$xmax,oT$rect$xmax)
                           ,y = c(oT$rect$ymin
-                                 ,(Tearly-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
-                                 ,(Tlate-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
+                                 ,(Temp$early-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
+                                 ,(Temp$late-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
                                  ,oT$rect$ymin))
 
 # Mixed Layer Depth #####
@@ -184,41 +288,51 @@ oM<-c(oM,{
       )
 })
 
-# Sea ice concentration and extent (plotted over depth)
+# Sea ice concentration and extent (plotted over depth) ####
+sXrange<- if(is.na(oS$unit)) (log10(SeaIce$MEASOarea)-oS$Xstart) else (SeaIce$MEASOarea-oS$Xstart)/oS$unit
 
-oS$box<-list(xmin = (oS$rect$xmax-(log10(SeaIce$MEASOarea)-oS$XstartLog10)*oS$XpropPerLog10)*Xlim[2]
+oS$box<-list(xmin = (oS$rect$xmax-sXrange*oS$XpropPerUnit)*Xlim[2]
              ,xmax = oS$rect$xmax*Xlim[2]
              ,ymin = oS$rect$ymin*Ylim[2]
              ,ymax = (oS$rect$ymin+oS$rect$h)*Ylim[2])
 
+
+if(is.na(oS$unit)){  
+  s95<-list(early = log10(SeaIce$conc95$early/100*SeaIce$MEASOarea)-oS$Xstart
+            ,late = log10(SeaIce$conc95$late/100*SeaIce$MEASOarea)-oS$Xstart)
+  s75<-list(early = log10(SeaIce$conc75$early/100*SeaIce$MEASOarea)-oS$Xstart
+            ,late = log10(SeaIce$conc75$late/100*SeaIce$MEASOarea)-oS$Xstart)
+  s25<-list(early = log10(SeaIce$conc25$early/100*SeaIce$MEASOarea)-oS$Xstart
+            ,late = log10(SeaIce$conc25$late/100*SeaIce$MEASOarea)-oS$Xstart)
+} else {
+  s95<-list(early = (SeaIce$conc95$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc95$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+  s75<-list(early = (SeaIce$conc75$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc75$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+  s25<-list(early = (SeaIce$conc25$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc25$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+}
+print(SeaIce$MEASOarea)
+
 oS$box<-c(oS$box,list(
-   ticksX = (c(seq(oS$XstartLog10,floor(log10(SeaIce$MEASOarea)),1),log10(SeaIce$MEASOarea))-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]+oS$box$xmin
-  ,poly95 = data.frame(x=c(oS$box$xmin,oS$box$xmin
-                           ,oS$box$xmin+(log10(SeaIce[[2]]$early)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
-                           ,oS$box$xmin+(log10(SeaIce[[2]]$late)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
+   poly95 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                           ,oS$box$xmin+s95$early*oS$XpropPerUnit*Xlim[2]
+                           ,oS$box$xmin+s95$late*oS$XpropPerUnit*Xlim[2]
                            )
                        ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
   ,poly75 = data.frame(x=c(oS$box$xmin,oS$box$xmin
-                           ,oS$box$xmin+(log10(SeaIce[[3]]$early)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
-                           ,oS$box$xmin+(log10(SeaIce[[3]]$late)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
+                           ,oS$box$xmin+s75$early*oS$XpropPerUnit*Xlim[2]
+                           ,oS$box$xmin+s75$late*oS$XpropPerUnit*Xlim[2]
                            )
                        ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
   ,poly25 = data.frame(x=c(oS$box$xmin,oS$box$xmin
-                           ,oS$box$xmin+(log10(SeaIce[[4]]$early)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
-                           ,oS$box$xmin+(log10(SeaIce[[4]]$late)-oS$XstartLog10)*oS$XpropPerLog10*Xlim[2]
+                           ,oS$box$xmin+s25$early*oS$XpropPerUnit*Xlim[2]
+                           ,oS$box$xmin+s25$late*oS$XpropPerUnit*Xlim[2]
                            )
                        ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
 ))
 
-######### Plot ####
-
-doTicks<-list(depth=FALSE, light=FALSE,temp=FALSE, MLD=FALSE, ice=FALSE)
-Colours<-list(depth = list(bg = "white", main = "black")
-              ,light = list(bg = "white", main = "black")
-              ,temp  = list(bg = "white", main = "black")
-              ,MLD   = list(bg = "white", main = "black")
-              ,ice   = list(bg = "white", c95 = "white", c75 = "grey", c25 = "black")
-              )# end colours
+# Plot ####
 
 p<-ggplot() + coord_fixed(ratio=1) + xlim(Xlim) + ylim(Ylim) + xlab("")+ylab("")+
    theme(
@@ -240,7 +354,7 @@ if(doTicks$depth) for(i in c(1:length(oD$box$ticksY))) p<-p+geom_line(aes(x=x,y=
 # light 
 #p<-p+ geom_circle(aes(x0 = oL$sun$x, y0 = oL$sun$y, r = oL$sun$r), fill = Colours$light$main, show.legend=FALSE)
 p<-p+geom_polygon(data=oL$sun$poly,aes(x=x,y=y),fill=Colours$light$main,linetype=1,colour="black", show.legend=FALSE)
-p<-p+geom_rect(aes(xmin=oL$rect$xmin,xmax=oL$rect$xmax,ymin=oL$rect$ymax,ymax=oL$rect$ymaxBG),fill=Colours$light$main,show.legend=FALSE)
+#p<-p+geom_rect(aes(xmin=oL$rect$xmin,xmax=oL$rect$xmax,ymin=oL$rect$ymax,ymax=oL$rect$ymaxBG),fill=Colours$light$main,show.legend=FALSE)
 p<-p+geom_rect(aes(xmin=oL$rect$xmin,xmax=oL$rect$xmax,ymin=oL$rect$ymin,ymax=oL$rect$ymax),fill=Colours$light$bg,linetype=1,colour="black",show.legend=FALSE)
 p<-p+geom_polygon(data=oL$poly,aes(x=x,y=y),fill=Colours$light$main, show.legend=FALSE)
 if(doTicks$light) for(i in c(1:length(oL$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oL$ticksX,y=c(oL$ticksY[i],oL$ticksY[i])),linetype=1,colour="black")
@@ -260,13 +374,140 @@ if(doTicks$light) for(i in c(1:length(oL$ticksY))) p<-p+geom_line(aes(x=x,y=y),d
   
   if(doTicks$MLD) for(i in c(1:length(oM$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oM$ticksX,y=c(oM$ticksY[i],oM$ticksY[i])),linetype=1,colour="black")
 
-   # Sea ice (data are for open water)  
-# p<-p+geom_rect(aes(xmin=oS$box$xmin,xmax=oS$box$xmax,ymin=oS$box$ymin,ymax=oS$box$ymax),fill=Colours$ice$bg,linetype=1,colour="black",show.legend=FALSE)
+  if(sum(oS$box$poly95$x>oS$box$xmin)>0){
+  # Sea ice (data are for open water)  
+  # p<-p+geom_rect(aes(xmin=oS$box$xmin,xmax=oS$box$xmax,ymin=oS$box$ymin,ymax=oS$box$ymax),fill=Colours$ice$bg,linetype=1,colour="black",show.legend=FALSE)
   p<-p+geom_polygon(data=oS$box$poly95,aes(x=x,y=y),fill=Colours$ice$c95,linetype=1,colour="black", show.legend=FALSE)
   p<-p+geom_polygon(data=oS$box$poly75,aes(x=x,y=y),fill=Colours$ice$c75, show.legend=FALSE)
   p<-p+geom_polygon(data=oS$box$poly25,aes(x=x,y=y),fill=Colours$ice$c25, show.legend=FALSE)
   if(doTicks$ice) for(i in c(1:length(oS$box$ticksX))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oS$box$ticksX[i],oS$box$ticksX[i]),y=c(oS$box$ymax-2,oS$box$ymax)),linetype=1,colour="black")
+  }
+  
 
-p
+return(p)
+}
+
+fnJoinWParea<-function(gt_m180,lt_m180,r,shp){  # input polygon numbers
+  s1<-r[r[,"geom"]==gt_m180,]
+  s2<-r[r[,"geom"]==lt_m180,]
+  #plot(vect(s1,type="polygons",crs=crs(shp)))
+  s1180y<-s1[s1[,"x"]<(-179.999),"y"]
+  s2180y<-s2[s2[,"x"]>(-180.001),"y"]
+  
+  s1Mod<-s1[which(!(s1[,"x"]<(-179.999) & !(s1[,"y"]==min(s1180y) | s1[,"y"]==max(s1180y)))),]
+  s2Mod<-s2[which(!(s2[,"x"]>(-180.001) & !(s2[,"y"]==min(s2180y) | s2[,"y"]==max(s2180y)))),]
+  
+  s1Mod<-s1Mod[-1,]
+  
+  p180<-which(s2Mod[,"x"]>(-180.001))
+  sFull<-rbind(s2Mod[c(1:p180[1]),],s1Mod,s2Mod[-c(1:p180[1]),])
+  sFull[,"part"]<-1
+  sFull[,"geom"]<-1
+  
+  return(vect(sFull,type="polygons",crs=crs(shp)))
+}
+
+plotMEASObaseMap<-function(shp){
+  
+  # for each of the west pacific areas (shapes 13:15), part 2 of the shape is to be
+  # at each end of the plot.  Those on the left are to be joined to part 1 as a single
+  # polygon and those on the right would be separate polygons
+  
+  r0 <- geom(shp[c(13:15)]) # cols(geom,part,x,y,hole)  where geom is the MEASO area number
+  r1<-r0[r0[,"part"]==1,]
+  r2 <- r0[r0[,"part"]==2,] 
+  r2[,"geom"]<-r2[,"geom"]+3
+  r2[,"part"]<-1
+  r3 <- r2  # part 2 - give this longitudes less than -180
+  r3[,"x"]<-r3[,"x"]-360
+  
+  r<-rbind(r1,r3)
+  r[,"part"]<-1
+  
+  sAdd180<-vect(r2,type="polygons",crs=crs(shp))
+  
+  sWPA<-fnJoinWParea(1,4,r,shp)
+  sWPS<-fnJoinWParea(3,6,r,shp)
+  sWPN<-fnJoinWParea(2,5,r,shp)
+  
+  dR<-values(shp[c(13:15)])
+  shpNew<-vect(c(shp[c(1:12)],sWPA,sWPN,sWPS,sAdd180))
+  values(shpNew)<-rbind(values(shp),dR)
+  
+  vR1<-shpNew; crs(vR1)<-""  # need crs="" to ensure can plot on my scales in geom_spatvector
+  
+  # demoplot(vR1$col,type="bar")
+  
+  g <-ggplot()
+  g <- g + scale_x_continuous(limits=c(-190,170),breaks = seq(-180,180,30), labels=as.character(seq(-180,180,30))) +
+    scale_y_continuous(limits=c(-83,-40),breaks = seq(-80,-40,10), labels=as.character(seq(-80,-40,10))) +
+    theme(panel.background =element_rect(colour="black",fill = NA)
+          ,plot.background = element_rect(colour="black",fill = NA)
+          ,aspect.ratio = 0.6
+          ,axis.title = element_blank()
+          ,legend.position = "none")
+  g<-g + geom_spatvector(data=vR1,aes(fill=factor(vR1$MEASO_area,levels = unique(vR1$MEASO_area))),color="black") #mapping=aes(fill=vR1$col),
+  g<-g + scale_fill_manual(values = MEASOcols)
+  
+  return(g)
+}
 
 
+# 4.0 Test Routine ####
+
+# plot MEASO summaries
+
+for(i in 10:12){
+p<-plotMEASOareaSummary(MEASOareaSummary[[i]],oD,oL,oT,oM,oS,Xlim,Ylim,doTicks,Colours,ContShelf=TRUE)
+print(p)
+}
+
+ggsave("tmp.png",plot=p)
+
+
+# loading the required libraries 
+library(ggplot2)
+library(png) 
+library(tidyterra)
+library(patchwork)
+library(geodata)
+library(terra)
+
+
+MEASOshp<-cbind(MEASOshp,as.data.frame(MEASOcols))
+names(MEASOshp)<-c(names(MEASOshp)[1],"col")
+
+baseMap<-plotMEASObaseMap(MEASOshp)
+baseMap
+
+pSize<-c(0.25,0.25)
+pLoc<-list( a01 = c(0.60,0.3) # AOA
+           ,a02 = c(0.60,0.72) # AON
+           ,a03 = c(0.60,0.59) # AOS
+           ,a04 = c(0.80,0.30) # CIA
+           ,a05 = c(0.80,0.70) # CIN
+           ,a06 = c(0.80,0.53) # CIS
+           ,a07 = c(0.97,0.3) # EIA
+           ,a08 = c(0.97,0.60) # EIN
+           ,a09 = c(0.97,0.44) # EIS
+           ,a10 = c(0.365,0.14) # EPA
+           ,a11 = c(0.365,0.60) # EPN
+           ,a12 = c(0.365,0.34) # EPS
+           ,a13 = c(0.22,0.14) # WPA
+           ,a14 = c(0.22,0.60) # WPN
+           ,a15 = c(0.22,0.40) # WPS
+)  # coordinates for bottom-right corner because size may vary
+
+g<-baseMap
+for(i in seq(1,15,1)){
+  p<-plotMEASOareaSummary(MEASOareaSummary[[i]],oD,oL,oT,oM,oS,Xlim,Ylim,doTicks,Colours,ContShelf=TRUE)
+  
+  g<-g + inset_element( p
+                ,left   = pLoc[[i]][1]-pSize[1] 
+                ,bottom = pLoc[[i]][2] 
+                ,right  = pLoc[[i]][1] 
+                ,top    = pLoc[[i]][2]+pSize[2])
+       }
+g
+
+# printing graph with image  
