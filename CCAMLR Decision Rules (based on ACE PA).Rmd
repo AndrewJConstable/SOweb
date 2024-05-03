@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(raster)
 library(sp)
 library(ggplot2)
+library(deSolve)
 ```
   
 This routine provides a general Schaeffer production model to explore general principles associated with the CCAMLR Decision Rule for Antarctic krill fisheries.  
@@ -36,37 +37,41 @@ Parameters of the model are derived from the standardisation of biomass rate fun
 ``` {r Schaeffer, include=FALSE}
 # Functions ####
 
-# fn - Schaefer surplus production - growth rate given biomass ####
-dB<-function(B,par){B*par$r/par$phi*(1-(B/par$K)^par$phi)}
+# fn - Pella-Tomlinson (1969) surplus production - growth rate given biomass ####
+dP<-function(B,par){B*par$r/par$phi*(1-(B/par$K)^par$phi)}
 
 fnM<-function(B,par){if(par$useMrate) return(par$M*B) else return(par$Mmax*B/(par$M50propK*par$K+B))}   # Pred TypeII fn relationship
 
-fnProjPellaTomlinson<-function(y,B,par,Yrs,res){
-  if(y>Yrs){
+fnPellaTomlinson_dBdt<-function(t,y,par,catch){
+  list(dP(y,par)-fnM(y,par)-catch)
+  }
+
+fnProjPellaTomlinson<-function(y,B,par,catch,Yrs,res){
+  if(y>(Yrs-1)){
     return(res)
   } else {
-    B<-B+dB(B,par)-fnM(B,par)
+    B<-B+dP(B,par)-fnM(B,par)-catch
     y<-y+1
     res<-rbind(res,data.frame(y=y,B=B))
-    return(fnProj(y,B,par,Yrs,res))
+    return(fnProjPellaTomlinson(y,B,par,catch,Yrs,res))
   }
 } # end fnProj
 
-fnPlotPellaTomlinson<-function(PT,yrs,Bstart,Krange){
+fnPlotPellaTomlinson<-function(PT,yrs,Bstart,Krange,catch=0){
 Ystart<-yrs[1]
 Yrs<-yrs[2]
 res<-data.frame(y=0,B=Bstart)
-r1<-fnProjPellaTomlinson(Ystart,Bstart,PT$par,Yrs,res)
+r1<-fnProjPellaTomlinson(Ystart,Bstart,PT$par,catch,Yrs,res)
 plot(r1$y,r1$B,type="l",main="Projection",xlab="Year",ylab="Biomass",ylim=c(0,PT$par$K*Krange[2]))
-abline(h=c(PT$B_pmax_givenM,PT$Bmax_dB,PT$B0),lty=c(5,5,5),col=c("black","red","blue"))
+abline(h=c(PT$B_pmax_givenM,PT$Bmax_dP,PT$B0),lty=c(5,5,5),col=c("black","red","blue"))
 
 B<-seq(Krange[1],Krange[2],1E-2)*PT$par$K 
-plot(B,dB(B,PT$par),type="l",main="Production",xlab="Biomass",ylab="Annual Growth")
+plot(B,dP(B,PT$par),type="l",main="Production",xlab="Biomass",ylab="Annual Growth")
 lines(B,PT$par$M*B,col="green")
 pPar<-PT$par
 pPar$useMrate<-FALSE; lines(B,fnM(B,pPar),col="orange")
 abline(h=0,lty=5,col="black")
-abline(v=c(PT$B_pmax_givenM,PT$Bmax_dB,PT$B0),lty=c(5,5),col=c("black","red","blue"))
+abline(v=c(PT$B_pmax_givenM,PT$Bmax_dP,PT$B0),lty=c(5,5),col=c("black","red","blue"))
 }
 
 fnTimeToRecover<-function(Bfrom,Bto,par,M,YrsMax=500,Tol=1E-2){  # maximum years for projection
@@ -75,7 +80,7 @@ fnTimeToRecover<-function(Bfrom,Bto,par,M,YrsMax=500,Tol=1E-2){  # maximum years
                y<-1
                while (B>0 & B<Brecovered & y<YrsMax) {
                     Bp<-B
-                    B<-B*(1-M)+dB(B,par)
+                    B<-B*(1-M)+dP(B,par)
                     if(B<0) B<-0
                     y<-y+1
                     }
@@ -83,20 +88,7 @@ fnTimeToRecover<-function(Bfrom,Bto,par,M,YrsMax=500,Tol=1E-2){  # maximum years
                 return(RecoveryTime)
                 } # end fnTimeToRecover
 
-fnTimeToP0<-function(Bfrom,P0,par,M,YrsMax=500){  # estimate time to reach production at B0 = B0*ePB
-               B<-Bfrom
-               P<-dB(B,par)
-               y<-1
-               while (P>P0 & y<YrsMax) {
-                    Pp<-P
-                    P<-dB(B,par)
-                    B<-B*(1-M)+P
-                    if(B<0) B<-0
-                    y<-y+1
-                    }
-               if(y==1) Time<-(-P/P0) else if(y==YrsMax) Time<-Inf else Time<-(P0-Pp)/(P-Pp)+y-1
-                return(Time)
-                } # end fnTimeToRecover
+
 ```
 
 
@@ -104,56 +96,51 @@ fnTimeToP0<-function(Bfrom,P0,par,M,YrsMax=500){  # estimate time to reach produ
 
 # functions for minimisation routines
 
-findBmax_dB<-function(b,par){return(-log(dB(b,par)))}  # = 0.5K when phi=1
-findKrillB0<-function(b,par,bmax,pmax,p){prod<-dB(b,par)  
-                                         if(b<bmax) prod<-2*pmax-prod
-                                         if(b>par$K) prod<-pmax-prod
+findBmax_dP<-function(b,par){return(-log(dP(b,par)))}  # = 0.5K when phi=1
+findKrillB0<-function(par,Ppar,bmax,pmax,p){prod<-dP(par,Ppar)  
+#                                         if(b<bmax) prod<-2*pmax-prod
+#                                         if(b>par$K) prod<-pmax-prod
                                          return((prod-p*pmax)^2)}
-findProdMaxGivenM<-function(b,par){return(-log(dB(b,par)-fnM(b,par)))} 
+findProdMaxGivenM<-function(b,par){return(-log(dP(b,par)-fnM(b,par)))} 
+
+
+
 
 ```
 
 ```{r notUsed, echo=FALSE, eval=FALSE}
 # r for production to match loss at given biomass
-findR_loss<-function(r,B,Loss,par){par$r<-r;return((dB(B,par)-Loss)^2)} 
-
-# find R to match recovery time (stable recruitment)
-find_R_recovery<-function(par,Ppar,Bmax_dB,B0,M,RecoveryYr){
-  Ppar$r<-par
-  Time<-fnTimeToP0(Bmax_dB,B0*M,Ppar,M,RecoveryYr)
-  res<-(Time-RecoveryYr)^2
-  return(res)
-  }
+findR_loss<-function(r,B,Loss,par){par$r<-r;return((dP(B,par)-Loss)^2)} 
 
 
 findPhiRB0<-function(par,Ppar,RecoveryYr,ePB,B0propMax){
 #Ppar$phi<-par[1]
 Ppar$r<-par[1]
-Bmax_dB<-nlm(findBmax_dB,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
-#B0<-Bmax_dB+(Ppar$K-Bmax_dB)*par[3]
-B0<-nlm(findKrillB0,((Bmax_dB+Ppar$K)/2),Ppar,Bmax_dB,dB(Bmax_dB,Ppar),B0propMax)$estimate
-print(c(Bmax_dB,B0))
+Bmax_dP<-nlm(findBmax_dP,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
+#B0<-Bmax_dP+(Ppar$K-Bmax_dP)*par[3]
+B0<-nlm(findKrillB0,((Bmax_dP+Ppar$K)/2),Ppar,Bmax_dP,dP(Bmax_dP,Ppar),B0propMax)$estimate
+print(c(Bmax_dP,B0))
 M<-ePB
-Time<-fnTimeToP0(Bmax_dB,(B0*M),Ppar,M)
+Time<-fnTimeToP0(Bmax_dP,(B0*M),Ppar,M)
 print(Time)
 return((Time-RecoveryYr)^2)
 } # end findRB0
 
-#Bmax_dB<-nlm(findBmax_dB,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
+#Bmax_dP<-nlm(findBmax_dP,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
 #Rmax<-Inf
-#Rmin<-nlm(findR_loss,1,Krill$Bmax_dB,Krill$Bmax_dB*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
+#Rmin<-nlm(findR_loss,1,Krill$Bmax_dP,Krill$Bmax_dP*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
 
 
 
 findPhi<-function(par,Ppar,ePB,PredKasPropKrillMaxProd,Yrs){
 Ppar$phi<-par
-Bmax_dB<-nlm(findBmax_dB,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
-B0<-nlm(findKrillB0,((Bmax_dB+Ppar$K)/2),Ppar,Bmax_dB,dB(Bmax_dB,Ppar),PredKasPropKrillMaxProd)$estimate
-Rmax<-nlm(findR_loss,1,B0,dB(B0,Ppar),Ppar)$estimate # perfect solution if it is possible
-Rmin<- (-log(Bmax_dB*(Ppar$K/B0-1)/(Ppar$K-Bmax_dB))/Yrs) # logistic without loss
+Bmax_dP<-nlm(findBmax_dP,0.5*Ppar$K,Ppar)$estimate  # guess if for phi=1
+B0<-nlm(findKrillB0,((Bmax_dP+Ppar$K)/2),Ppar,Bmax_dP,dP(Bmax_dP,Ppar),PredKasPropKrillMaxProd)$estimate
+Rmax<-nlm(findR_loss,1,B0,dP(B0,Ppar),Ppar)$estimate # perfect solution if it is possible
+Rmin<- (-log(Bmax_dP*(Ppar$K/B0-1)/(Ppar$K-Bmax_dP))/Yrs) # logistic without loss
 Ppar$r<-optimize(find_R_recovery,interval=c(Rmin,Rmax)
-                 ,Ppar=Ppar,Bmax_dB=Bmax_dB,B0=B0,M=dB(B0,Ppar)/B0,RecoveryYr=Yrs)$minimum
-return((dB(B0,Ppar)/B0-ePB)^2)
+                 ,Ppar=Ppar,Bmax_dP=Bmax_dP,B0=B0,M=dP(B0,Ppar)/B0,RecoveryYr=Yrs)$minimum
+return((dP(B0,Ppar)/B0-ePB)^2)
 } # end findPhi
 
 
@@ -170,9 +157,9 @@ return((dB(B0,Ppar)/B0-ePB)^2)
 
 
 Rmax<-Inf
-Rmin<-nlm(findR_loss,1,Krill$Bmax_dB,Krill$Bmax_dB*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
+Rmin<-nlm(findR_loss,1,Krill$Bmax_dP,Krill$Bmax_dP*Krill$ePB,Krill$par)$estimate # perfect solution if it is possible
 Krill$par$r<-optimize(find_R_recovery,interval=c(Rmin,Rmax)
-                 ,Ppar=Krill$par,Bmax_dB=Krill$Bmax_dB,B0=Krill$B0,M=dB(Krill$B0,Krill$par)/Krill$B0,RecoveryYr=Krill$Recovery$Years)$minimum
+                 ,Ppar=Krill$par,Bmax_dP=Krill$Bmax_dP,B0=Krill$B0,M=dP(Krill$B0,Krill$par)/Krill$B0,RecoveryYr=Krill$Recovery$Years)$minimum
 
 ```
 
@@ -196,16 +183,21 @@ The combined population effects of predator feeding, response to starvation, and
 The key attributes of a balanced system are that the total predator consumption is a proportion of the maximum available production of krill, the krill population is able to recover from the size at maximum production to the size at balance with predators in the time of the expected maximum age of the krill population (i.e. the recruitment rate is still stable), and the intrinsic rate of increase of krill is sufficient to achieve both these requirements. 
 
 ```{r krill_model, echo=FALSE, eval=TRUE}
-Krill<-list(par = list(K = 100, r=1.8, phi=1E-3, M = NA, useMrate=FALSE, Mmax=NA, M50propK=0.1)
-            ,B0asPropKrillMaxProd=0.7
+Krill<-list(par = list(K = 100
+                       , r=2.4     # 3
+                       , phi=0.1 # 0.1
+                       , M = NA, useMrate=TRUE, Mmax=NA, M50propK=0.15)
+            ,B0asPropKrillMaxProd=0.9 # 0.97
             ,ePB = 3.1 # ecopath Production to Biomass ratio: Hill et al 2021 Euphausids
             ) # end Krill
-Krill$Bmax_dB<-nlm(findBmax_dB,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
-Krill$B0<-nlm(findKrillB0,((Krill$Bmax_dB+Krill$par$K)/2),Krill$par,Krill$Bmax_dB,dB(Krill$Bmax_dB,Krill$par),Krill$B0asPropKrillMaxProd)$estimate
-Krill$par$Mmax<-dB(B0,Krill$par)/B0*(Krill$par$M50propK*Krill$par$K+B0)
-Krill$par$M<-dB(B0,Krill$par)/B0
-Krill$B_pmax_givenM<-nlm(findProdMaxGivenM,Krill$Bmax_dB,Krill$par)$estimate
-fnPlotPellaTomlinson(Krill,yrs=c(0,15),Trial$par$K*0.3,c(0,1.2))
+Krill$Bmax_dP<-nlm(findBmax_dP,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
+Krill$B0<-optimise(findKrillB0,interval=c(Krill$Bmax_dP,Krill$par$K),Ppar=Krill$par ,bmax=Krill$Bmax_dP ,pmax=dP(Krill$Bmax_dP,Krill$par) ,p=Krill$B0asPropKrillMaxProd )$minimum
+Krill$B0
+
+Krill$par$Mmax<-dP(Krill$B0,Krill$par)/Krill$B0*(Krill$par$M50propK*Krill$par$K+Krill$B0)
+Krill$par$M<-dP(Krill$B0,Krill$par)/Krill$B0
+Krill$B_pmax_givenM<-nlm(findProdMaxGivenM,Krill$Bmax_dP,Krill$par)$estimate
+fnPlotPellaTomlinson(Krill,yrs=c(0,15),Krill$par$K*0.3,c(0,1.2))
 
 ```
 
@@ -217,21 +209,20 @@ To determine population size at carrying capacity, start predator population at 
 
 Pred<-list(NB = 1E6  # for scaling Holling
            ,QBhat=NA  # calculate from prey maximum production
-           ,useHolling = FALSE
-           ,Holling = list(p50 = 0.2   # prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
-                           ,q = 0       # Holling curvature
+           ,useHolling = TRUE
+           ,Holling = list(p50 = 0.2   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
+                           ,q = 3.5       # 3.5   Holling curvature
                            ,c=1         # relative impacts of predators on availability of prey
                            ,g=3         # g>=1 delay in decline of effect of predator competition 
                            ,doPC=FALSE) # adjust Holling for predator competition
            ,Age99 = 60  # age at which abundance is 0.01 of age 0
-           ,PB    = 0.034 # baleen whales from Hill et al 2021
-           ,QB    = 5.306 # baleen whales from Hill et al 2021
-           ,RB    = 5.115 # baleen whales from Hill et al 2021
-           ,A     = 0.843 # baleen whales from Hill et al 2021
-           ,KasPropKrillMaxProd = 0.8  # scale QB to the proportion of max production by krill (1 = consume up to maximum production)
+           ,PB    = 0.02 # baleen whales from Hill et al 2021
+           ,QB    = 3.4 # baleen whales from Hill et al 2021
+           ,RB    = NA # baleen whales from Hill et al 2021
+           ,A     = 0.8   # McCormack baleen whales from Hill et al 2021
            ) # end list 
 
-Pred$Holling$p50<- Krill$Bmax_dB*Pred$Holling$p50 # scale Holling functional response to krill
+Pred$Holling$p50<- Krill$Bmax_dP*Pred$Holling$p50 # scale Holling functional response to krill
 
 # scaling predator to prey
 # The relationship of predator to prey at equilibrium is dependent on the biomass of krill at equilibrium,
@@ -242,7 +233,7 @@ PredCompetition<-function(Bp,Bc,H){if(H$doPC) return(1/(Bp/(Bc*H$c))^H$g) else r
 fnHolling<-function(Bp,Bc,H){Bp^(H$q+1)/(H$p50^(H$q+1)+(Bp*(1+PredCompetition(Bp,Bc,H)))^(H$q+1))}
 
 # Predator B0: determined by krill production at Krill B0 and predator consumption/biomass
-Pred$B0<-dB(Krill$B0,Krill$par)/Pred$QB  # equivalent to predator K
+Pred$B0<-dP(Krill$B0,Krill$par)/Pred$QB  # equivalent to predator K
 
 findPredQBmax<-function(im,qb,Cb0,Pb0,H){return((im*fnHolling(Pb0,Cb0,H)-qb)^2)} # QBmax
 
@@ -283,38 +274,47 @@ Time_for_recovery_max<-30
 Time_for_recovery<-(Time_for_recovery_max+Time_for_recovery_min)/2
 
 
-fnProjPopForTAC<-function(Bp,cF,projYrs,pP){
-    res<-Bp
-    for(y in c(1:projYrs)){
-     dP<-dB(Bp,pP$par)
-     Bp1<-Bp+dP-pP$M*Bp-cF
-     res<-c(res,Bp1)
-     Bp<-Bp1
-    }
-return(res)}
+fnTimeToTarget<-function(Bfrom,Bt,par,Catch=0,grad=0.05,YrsMax=500){  # estimate time to reach target level - determined as the gradient over one year = 0.05 or thereabouts
+               B<-Bfrom
+#               Bcrit<-0.5*Bt ; print(Bcrit/Bfrom)
+               g<-abs(Bt-Bfrom)
+               G<-grad*g
+                y<-1
+               while (B>0 & g>G & y<YrsMax) {
+                    Bp<-B
+                    Gp<-g
+                    B<-B+dP(B,par)-fnM(B,par)-Catch
+                    y<-y+1
+                    g<-abs(B-Bp)
+                    }
+               if(y==YrsMax) Time<-Inf else if(B<=0) Time<-(-(B-Bp)/G)+y-1  else Time<-(G-Gp)/(g-Gp)+y-1
+                return(Time)
+                } # end fnTimeToRecover
 
-  
-findTAC<-function(g,B0,Bt,Bl,projYrs,pP){
-  cF<-g*B0
-  Bp<-B0
-  res<-fnProjPopForTAC(Bp,cF,projYrs,pP)
-  return((res[length(res)]/B0-Bt)^2)
-}  
-Krill$M<-dB(Krill$B0,Krill$par)/Krill$B0
-
-Gamma<-nlm(findTAC,0,Krill$B0,Krill$Bmax_dB/Krill$B0,0.2,20,Krill)$estimate
-Gamma
-
-plot(c(0:20),fnProjPopForTAC(Krill$B0,Gamma*Krill$B0,20,Krill))
-
-#Krill$B0<-nlm(findB0,0.2*Krill$par$K,Krill$par)$estimate
-
-#Yield_target_0<-dB(K_target_0*Krill$B0,Krill$par)
-print(paste("Yield at target level = ",Yield_target_0,sep=""))
+find_G_Time_to_target<-function(par,Ppar,B0,Btarget,ProjYrs){
+  g<-par
+  print(paste0("g = ",g))
+  res<-ode(y=B0,times=seq(0,projYrs,1),func=fnPellaTomlinson_dBdt,par=Ppar,catch=g*B0,method="rk4")
+  nYrsGTE0<-sum(!is.nan(res[,2]))-1
+  print(res)
+  print(nYrsGTE0)
+  if(nYrsGTE0<ProjYrs) {
+    print(res[nYrsGTE0,2])
+    t<-(-res[nYrsGTE0+1,2]/(res[nYrsGTE0+1,2]-res[nYrsGTE0,2]))
+    print(t)
+    print(c(g,(-Btarget*(2-(nYrsGTE0+t)/ProjYrs))^2)); return((-Btarget*(2-(nYrsGTE0+t)/ProjYrs))^2)} else {print(c(1,g,(res[nrow(res),2]-Btarget)^2)); return((res[nrow(res),2]-Btarget)^2)}
+  }
 
 
+Gamma<-optimise(find_G_Time_to_target,c(0,1),Ppar=Krill$par,B0=Krill$B0,Btarget=K_target_0*Krill$B0,ProjYrs=20)$minimum
+Gamma  #0.2239
+Gamma=0.05
+plotYrs<-20
+res<-ode(y=Krill$B0,times=seq(0,plotYrs,1),func=fnPellaTomlinson_dBdt,par=Krill$par,catch=Gamma*Krill$B0,method="rk4")
 
-# a check (dB(Krill$Bmax_dB,Krill$par)-Pred$QB)/Krill$B0
+
+plot(res[,"y"],res[,"B"],type="l",main=paste0("Catch Trajectory: Gamma = ",Gamma),xlab="Year",ylab="Biomass",ylim=c(0,Krill$par$K))
+abline(h=K_target_0*Krill$B0,lty=5)
 ```
 
 
@@ -322,8 +322,8 @@ print(paste("Yield at target level = ",Yield_target_0,sep=""))
 
 ```{r PopProj,echo=FALSE,eval=TRUE}
 fnProjYear<-function(B,pP,pC,pF=0){
-     dP<-dB(B$Bp,pP$par)
-     if(pC$useHolling) cC<-B$Bc*pC$QBmax*fnHolling(B$Bp,B$Bc,pC$Holling) else cC<-pP$M*B$Bp
+     dP<-dP(B$Bp,pP$par)
+     if(pC$useHolling) cC<-B$Bc*pC$QBmax*fnHolling(B$Bp,B$Bc,pC$Holling) else cC<-fnM(B$Bp,pP$par)
      cF<-pF
      print(c(B$Bp,dP,cC,cF,B$Bc,cC*pC$A,B$Bc*(pC$RB+pC$M)))
      Bp1<-B$Bp+dP-cC-cF
@@ -331,13 +331,14 @@ fnProjYear<-function(B,pP,pC,pF=0){
      return(list(Bp=Bp1,Bc=Bc1))
       }
 
+#Gamma<-0.16  # 0.12
 
 pP<-Krill
 pC<-Pred
-pF<-0.01*Krill$B0
+pF<-Gamma*Krill$B0
 
 B<-list(Bp=pP$B0, Bc=pC$B0)
-Year<-seq(0,100,1)
+Year<-seq(0,50,1)
 res<-data.frame(B)
 for(i in Year[-1]){
   B<-fnProjYear(B,pP,pC,pF)
@@ -350,7 +351,7 @@ plotBc<-res[,"Bc"]/Pred$B0
 Ylim<-c(0,max(c(plotBp,plotBc)))
 plot(Year,plotBp,type="l",ylim=Ylim)
 lines(Year,plotBc,col="red")
-abline(h=c(1,Krill$Bmax_dB/Krill$B0),lty=c(5,5))
+abline(h=c(1,K_target_0),lty=c(5,5))
 
 ```
 
@@ -385,10 +386,10 @@ abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=
 # stock trajectory
 
 B<-K_RefPt_0
-Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+Yield<-dP(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
 
 for (i in 2:length(Yrs)) {
-  deltaB<-dB(B[(i-1)],K_RefPt_0,K_r_0,phi)
+  deltaB<-dP(B[(i-1)],K_RefPt_0,K_r_0,phi)
   if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
 #  print(c(Yrs[i],deltaB,Catch))
   
@@ -431,10 +432,10 @@ abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=
 # stock trajectory
 
 B<-K_RefPt_0
-Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+Yield<-dP(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
 
 for (i in 2:length(Yrs)) {
-  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  deltaB<-dP(B[(i-1)],RefPt[i],K_r_0,phi)
   if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
 #  print(c(Yrs[i],deltaB,Catch))
   
@@ -479,10 +480,10 @@ abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=
 # stock trajectory
 
 B<-K_RefPt_0
-Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+Yield<-dP(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
 
 for (i in 2:length(Yrs)) {
-  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  deltaB<-dP(B[(i-1)],RefPt[i],K_r_0,phi)
   if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
   B<-c(B,(B[(i-1)]+deltaB-Catch)) 
 }
@@ -531,10 +532,10 @@ abline(v=c(Yr_Fishing_start,Yr_Fishing_end,Yr_recovery_min,Yr_recovery_max),lty=
 # stock trajectory
 
 B<-K_RefPt_0
-Yield<-dB(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
+Yield<-dP(K_target_0*K_RefPt_0,K_RefPt_0,K_r_0,phi)
 
 for (i in 2:length(Yrs)) {
-  deltaB<-dB(B[(i-1)],RefPt[i],K_r_0,phi)
+  deltaB<-dP(B[(i-1)],RefPt[i],K_r_0,phi)
   if(Yrs[i]>=Yr_Fishing_start && Yrs[i]<=Yr_Fishing_end) Catch<-Yield else Catch<-0
   if(Yrs[i]==Yr_catastrophe) deltaB<-(-0.5*B[length(B)])
   B<-c(B,(B[(i-1)]+deltaB-Catch)) 
