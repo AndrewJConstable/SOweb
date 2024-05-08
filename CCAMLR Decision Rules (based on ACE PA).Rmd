@@ -72,81 +72,113 @@ Currently catch limits are determined according to projections over a 10 year pe
 
 
 ```{r fishery,echo=FALSE,eval=TRUE}
-# 3.0 Illustrative plots based on assessment of gamma for population ####
+# determine gamma
 
-# 3.1 Determine gamma for mortality rate
+whichGamma<-c("Rate","Whale","Penguin")
 
-HoldUseMrate<-Krill$par$useMrate
-Krill$par$useMrate<-TRUE
-GammaM08<-optimise(find_G_Pop,c(0,1),Ppar=Krill,B0=Krill$B0,Btarget=Fishery$K_target_0*Krill$B0,projYrs=ProjYears$GammaCalcs)$minimum
-Krill$par$useMrate<-FALSE
-GammaHolling<-optimise(find_G_Pop,c(0,1),Ppar=Krill,B0=Krill$B0,Btarget=Fishery$K_target_0*Krill$B0,projYrs=ProjYears$GammaCalcs)$minimum
-Krill$par$useMrate<-HoldUseMrate
+Gamma<-do.call(c,lapply(whichGamma,function(whichG,H,PT,Target,Yrs){
+    if(whichG=="Rate"){
+        PT$par$useMrate<-TRUE
+        return(optimise(find_G_Pop,c(0,1)
+                        ,PT=PT,B0=PT$B0,Btarget=Target*PT$B0
+                        ,projYrs=Yrs)$minimum)
+    } else {
+                   PT$par$Holling<-H[[whichG]]
+                   PB0<-PT$B0*PT$par$M
+                   PT$par$useMrate<-FALSE
+                   PT$par$Mmax<-nlm(findMmax,PB0,PT,PT$B0,PB0)$estimate
+                   return(optimise(find_G_Pop,c(0,1)
+                        ,PT=PT,B0=PT$B0,Btarget=Target*PT$B0
+                        ,projYrs=Yrs)$minimum)
+    } # end else
+    },HollingExamples,Krill,Fishery$K_target_0,ProjYears$GammaCalcs))           
+names(Gamma)<-whichGamma
 
-print(paste0("Gamma using mortality rate = ",GammaM08))
-print(paste0("Gamma using functional relationship = ",GammaHolling))
 
-fnPlotPopWithGamma<-function(PT,ProjYears,GammaM=NULL,GammaHolling=NULL,MainPlotUsingGammaM=TRUE){
+fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
+                             ,parms,ProjYears,Xlim=NULL,XticksN=5,Ylim=NULL,YticksN=5,useStatus=TRUE){
 
-# project time series on each mortality type
-
+  # create dataframe ####
+y0<-parms$PT$B0
+names(y0)<-"B"
 plotYrs<-ProjYears$YearsTotal
-parms<-list(PT=PT, catch=rep(0,ProjYears$YearsTotal))
-y0<-PT$B0
-names(y0)<-"Biomass"
-pd<-NULL
-if(!is.null(GammaM)){
-parms$PT$par$useMrate<-TRUE
-parms$catch[ProjYears$Fishery]<-GammaM*PT$B0
-res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
-Mortality<-rep("Rate",nrow(res))
-pd<-rbind(pd,cbind(Mortality,res))
-}
-if(!is.null(GammaHolling)){
-parms$PT$par$useMrate<-FALSE
-parms$catch[ProjYears$Fishery]<-GammaHolling*PT$B0
-res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
-Mortality<-rep("Function",nrow(res))
-pd<-rbind(pd,cbind(Mortality,res))
-}
+if(is.null(parms$catch)) parms$catch<-rep(0, ProjYears$YearsTotal)
 
-# standardise to status
-pd$Biomass<-pd$Biomass/y0
-Xlim<-c(0,ProjYears$YearsTotal)
-#Ylim<-c(0,ceiling(max(pd$Biomass)*100)/100)
-Ylim<-c(0,1)#max(pd$Biomass))
+pd<-do.call(rbind,lapply(c(1:length(Gamma)),function(g,Gamma,parms,y0,plotYrs,yrsFishery){
+     G<-Gamma[g]
+      MortalityType<-names(G)
+      H<-parms$HollingExamples
+      yrsFishery<-yrsFishery[yrsFishery<=plotYrs] # ensure NAs do not enter the data
+      if(MortalityType=="Rate"){
+        parms$PT$par$useMrate<-TRUE
+        parms$catch[yrsFishery]<-G*parms$PT$B0
+        res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
+        Mortality<-rep(MortalityType,nrow(res))
+        Gamma<-rep(G,nrow(res))
+        return(cbind(Mortality,Gamma,res))
+      } else {
+        parms$PT$par$Holling<-H[[MortalityType]]
+        parms$PT$par$useMrate<-FALSE
+        PB0<-parms$PT$B0*parms$PT$par$M
+        parms$PT$par$Mmax<-nlm(findMmax,PB0,parms$PT,parms$PT$B0,PB0)$estimate
+        parms$catch[yrsFishery]<-G*parms$PT$B0
+        res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
+        Mortality<-rep(MortalityType,nrow(res))
+        Gamma<-rep(G,nrow(res))
+        return(cbind(Mortality,Gamma,res))
+      } # end else
+      },Gamma,parms,y0,plotYrs,ProjYears$Fishery))
 
 pd$Mortality<-factor(pd$Mortality,levels=unique(pd$Mortality))
 
+# Plotting routine ####  
+    if(useStatus)                pd$B<-pd$B/pd$B[1]
+    if(is.null(Xlim))            Xlim<-c(0,max(pd$time,na.rm=TRUE))
+    if(is.null(Ylim))            Ylim<-c(0,max(pd$B,na.rm=TRUE))
 
-p<-ggplot(pd)+labs(x="Year",y="Status")
-p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
+    pd<-pd[pd$time>=Xlim[1] & pd$time<=Xlim[2] & !is.na(pd$B),] # restrict plot to x limits & remove NAs from dataframe
+    
+    p<-ggplot(pd)+labs(x="Year",y="Status")
+    p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
            ,panel.grid.major = element_blank()
            ,panel.grid.minor = element_blank()
            ,axis.line=element_line(colour="black")
            ,axis.text = element_text(size=14)
            ,axis.title=element_text(size=18)
-)# end theme
-p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=6)
+           )# end theme
+    p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=XticksN)
                          ,limits=Xlim
                          ,expand=expansion(mult = c(0,0.05)))
-p<- p+scale_y_continuous(breaks=seq(Ylim[1],Ylim[2],length.out=5)
-                         ,limits=Ylim
+    p<- p+scale_y_continuous(limits=Ylim
+                         ,breaks=seq(Ylim[1],Ylim[2],length.out=YticksN)
                          ,expand=expansion(mult = c(0,0.05)))
-p<- p+guides(
-  x = guide_axis(minor.ticks = TRUE)
-  ,y = guide_axis(minor.ticks = TRUE)
-)
+    p<- p+guides(
+          x = guide_axis(minor.ticks = TRUE)
+          ,y = guide_axis(minor.ticks = TRUE)
+        )
 
-p<- p+geom_hline(yintercept=c(0.2,0.75,1.0),colour=c("black","black","black"),linetype=c("dotted","dotted","dotted"))
-p<- p+geom_vline(xintercept=c((ProjYears$Fishery[1]-1),ProjYears$Fishery[length(ProjYears$Fishery)],(ProjYears$Fishery[length(ProjYears$Fishery)]+21)),colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
+    p<- p+geom_hline(yintercept=c(0.2,0.75,1.0),colour=c("black","black","black"),linetype=c("dotted","dotted","dotted"))
+    p<- p+geom_vline(xintercept=c((ProjYears$Fishery[1]-1)
+                                ,ProjYears$Fishery[length(ProjYears$Fishery)]
+                                ,(ProjYears$Fishery[length(ProjYears$Fishery)]+ProjYears$Recovery))
+                             ,colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
 
-p<- p+geom_line(aes(x=time,y=Biomass,colour=Mortality))
-return(p)
-} # end fn
-  
-fnPlotPopWithGamma(Krill,ProjYears,GammaM=GammaM08,GammaHolling=GammaHolling)
+    p<- p+geom_line(aes(x=time,y=B,colour=Mortality))
+    p<- p+theme(legend.key=element_blank())
+    return(p)
+    } # end fn
 
+parms<-list(PT=Krill, Btarget=Fishery$K_target_0*Krill$B0 , HollingExamples= HollingExamples, catch=NULL, ProjYears = ProjYears)
+
+p1<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1),YticksN = 6)
+p2<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(10,40),XticksN=4,Ylim=c(0.7,1.0),YticksN = 4)
+suppressWarnings(print(p1))
+suppressWarnings(print(p2))
+
+constGamma<-Gamma
+constGamma[c(2,3)]<-Gamma[1]
+p3<-fnPlotPopWithGamma(constGamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=6,Ylim=c(0,1),YticksN = 6)
+suppressWarnings(print(p3))
 
 ```
 
@@ -212,7 +244,10 @@ names(fwB0)<-c(parms$pP$name,as.vector(sapply(parms$pC,function(p){p$name})))
 
 HoldChangingK<-parms$pP$modelK$changingK
 parms$pP$modelK$changingK <-FALSE
-GammaFW<-optimise(find_G_FW,c(0,2*GammaM08),parms=parms,fwB0=fwB0,Btarget=Fishery$K_target_0*Krill$B0,projYrs=projYrs)$minimum
+#GammaFW<-optimise(find_G_FW,c(0,1),parms=parms,fwB0=fwB0,Btarget=Fishery$K_target_0*Krill$B0,projYrs=projYrs)$minimum
+
+
+GammaFW<-0.4311957
 
 parms$catch<-rep(0,ProjYears$YearsTotal)
 parms$catch[ProjYears$Fishery]<-GammaFW*Krill$B0
