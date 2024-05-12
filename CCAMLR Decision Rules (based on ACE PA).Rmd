@@ -45,6 +45,9 @@ The key attributes of a balanced system are that the total predator consumption 
 # 1.3 Calculate parameters from inputs ####
 # (note: order is important)
 
+plotColours<-as.vector(c(Env$plot$col,Krill$plot$col,sapply(Predators,function(p){p$plot$col}),Fishery$plot$col))
+names(plotColours)<-c(Env$name,Krill$name,sapply(Predators,function(p){p$name}),Fishery$name)
+
 EnvTimeSeries<-do.call(c,lapply(Env$Period,function(p){if(p$doFn) do.call(p$fn,list(p$years,p$data)) else rep(p$data,p$years)}))
 
 Krill$Bmax_dP<-nlm(findBmax_dP,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
@@ -59,10 +62,12 @@ HollingExamples<-list( Whale   = Predators$Whale$Holling
 HollingExamples$Whale$p50<-HollingExamples$Whale$p50*Krill$B0  # correct scaling of p50 to new B0
 HollingExamples$Penguin$p50<-HollingExamples$Penguin$p50*Krill$B0
 
-p<-fnPlotPellaTomlinson(Krill,HollingExamples)
-p
+p1<-fnPlotPellaTomlinson(Krill,plotColours,HollingExamples,Ylim=c(0,80))
+p1
 print(paste0("Krill M             = ",Krill$par$M))
 print(paste0("Krill max Ingestion = ",Krill$par$Mmax))
+
+
 
 ```
 
@@ -95,90 +100,12 @@ Gamma<-do.call(c,lapply(whichGamma,function(whichG,H,PT,Target,Yrs){
 names(Gamma)<-whichGamma
 
 
-fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
-                             ,parms,ProjYears,Xlim=NULL,XticksN=5,Ylim=NULL,YticksN=5,useStatus=TRUE){
-
-  # create dataframe ####
-y0<-parms$PT$B0
-names(y0)<-"B"
-plotYrs<-ProjYears$YearsTotal
-if(is.null(parms$catch)) parms$catch<-rep(0, ProjYears$YearsTotal)
-
-pd<-do.call(rbind,lapply(c(1:length(Gamma)),function(g,Gamma,parms,y0,plotYrs,yrsFishery){
-     G<-Gamma[g]
-      MortalityType<-names(G)
-      H<-parms$HollingExamples
-      yrsFishery<-yrsFishery[yrsFishery<=plotYrs] # ensure NAs do not enter the data
-      if(MortalityType=="Rate"){
-        parms$PT$par$useMrate<-TRUE
-        parms$catch[yrsFishery]<-G*parms$PT$B0
-        res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
-        Mortality<-rep(MortalityType,nrow(res))
-        Gamma<-rep(G,nrow(res))
-        return(cbind(Mortality,Gamma,res))
-      } else {
-        parms$PT$par$Holling<-H[[MortalityType]]
-        parms$PT$par$useMrate<-FALSE
-        PB0<-parms$PT$B0*parms$PT$par$M
-        parms$PT$par$Mmax<-nlm(findMmax,PB0,parms$PT,parms$PT$B0,PB0)$estimate
-        parms$catch[yrsFishery]<-G*parms$PT$B0
-        res<-as.data.frame(ode(y=y0,times=seq(0,plotYrs,0.2),func=fnPellaTomlinson_dBdt,parms=parms,method="rk4"))
-        Mortality<-rep(MortalityType,nrow(res))
-        Gamma<-rep(G,nrow(res))
-        return(cbind(Mortality,Gamma,res))
-      } # end else
-      },Gamma,parms,y0,plotYrs,ProjYears$Fishery))
-
-pd$Mortality<-factor(pd$Mortality,levels=unique(pd$Mortality))
-
-# Plotting routine ####  
-    if(useStatus)                pd$B<-pd$B/pd$B[1]
-    if(is.null(Xlim))            Xlim<-c(0,max(pd$time,na.rm=TRUE))
-    if(is.null(Ylim))            Ylim<-c(0,max(pd$B,na.rm=TRUE))
-
-    pd<-pd[pd$time>=Xlim[1] & pd$time<=Xlim[2] & !is.na(pd$B),] # restrict plot to x limits & remove NAs from dataframe
-    
-    p<-ggplot(pd)+labs(x="Year",y="Status")
-    p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
-           ,panel.grid.major = element_blank()
-           ,panel.grid.minor = element_blank()
-           ,axis.line=element_line(colour="black")
-           ,axis.text = element_text(size=14)
-           ,axis.title=element_text(size=18)
-           )# end theme
-    p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=XticksN)
-                         ,limits=Xlim
-                         ,expand=expansion(mult = c(0,0.05)))
-    p<- p+scale_y_continuous(limits=Ylim
-                         ,breaks=seq(Ylim[1],Ylim[2],length.out=YticksN)
-                         ,expand=expansion(mult = c(0,0.05)))
-    p<- p+guides(
-          x = guide_axis(minor.ticks = TRUE)
-          ,y = guide_axis(minor.ticks = TRUE)
-        )
-
-    p<- p+geom_hline(yintercept=c(0.2,0.75,1.0),colour=c("black","black","black"),linetype=c("dotted","dotted","dotted"))
-    p<- p+geom_vline(xintercept=c((ProjYears$Fishery[1]-1)
-                                ,ProjYears$Fishery[length(ProjYears$Fishery)]
-                                ,(ProjYears$Fishery[length(ProjYears$Fishery)]+ProjYears$Recovery))
-                             ,colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
-
-    p<- p+geom_line(aes(x=time,y=B,colour=Mortality))
-    p<- p+theme(legend.key=element_blank())
-    return(p)
-    } # end fn
 
 parms<-list(PT=Krill, Btarget=Fishery$K_target_0*Krill$B0 , HollingExamples= HollingExamples, catch=NULL, ProjYears = ProjYears)
 
-p1<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1),YticksN = 6)
-p2<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(10,40),XticksN=4,Ylim=c(0.7,1.0),YticksN = 4)
-suppressWarnings(print(p1))
-suppressWarnings(print(p2))
+p2<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1),YticksN = 5,LegendTopLeft=c(0.83,0.165))
 
-constGamma<-Gamma
-constGamma[c(2,3)]<-Gamma[1]
-p3<-fnPlotPopWithGamma(constGamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=6,Ylim=c(0,1),YticksN = 6)
-suppressWarnings(print(p3))
+suppressWarnings(print(p2))
 
 ```
 
@@ -190,16 +117,16 @@ To determine population size at carrying capacity, start predator population at 
 ```{r pred_model,echo=FALSE,eval=TRUE}
 
 # 2.0 setup predators ####
-Pred<-lapply(Predators[UsePredators],function(pC,pP,B0multiplier){
+Pred<-lapply(Predators,function(pC,pP){
                     pC$Holling$p50<- pP$B0*pC$Holling$p50 # scale Holling functional response to krill
                   # Predator B0: determined by krill production at Krill B0 and predator consumption/biomass
-                    pC$B0<- B0multiplier*pC$BrelP
-                    pC$QBmax<-nlm(findPredQBmax,(pC$QB*pC$B0),pC$QB,pC$B0,pP$B0,pC$Holling)$estimate
+                    pC$B0<- NA
+                    pC$QBmax<-NA
                     pC$M<-pC$PB
                     pC$RB<-pC$QB*pC$A-pC$PB
                     return(pC)
-                   },Krill,(dP(Krill$B0,Krill$par)/sum(sapply(Predators[UsePredators],function(p){p$BrelP*p$QB}))))
-names(Pred)<-UsePredators
+                   },Krill)
+names(Pred)<-names(Predators)
 
 # 2.1 Illustrative plots ####
 PredColours<-as.vector(sapply(Pred,function(p){p$plot$col}))
@@ -212,69 +139,197 @@ res<-as.data.frame(do.call(rbind,lapply(Pred,function(p,Bp){
          },xKrill)))
 names(res)<-c("Predator","Krill","Ingest")
 
-res$Predator<-factor(res$Predator,levels = UsePredators)
-p<-ggplot(res,aes(x=Krill,y=Ingest,colour=Predator))+geom_line()
-p<-p+scale_color_manual(values=PredColours)
-p<-p+geom_vline(xintercept = Krill$B0,col="black",linetype=5)
-p
+res$Predator<-factor(res$Predator,levels = unique(res$Predator))
+#p<-ggplot(res,aes(x=Krill,y=Ingest,colour=Predator))+geom_line()
+#p<-p+scale_color_manual(values=PredColours)
+#p<-p+geom_vline(xintercept = Krill$B0,col="black",linetype=5)
+#p
 
 
 ```
 
 
-# 5. Trial projections
+# 5. Scenarios
 
-```{r PopProj,echo=FALSE,eval=TRUE}
+## 5.1. Single predator-krill examples
 
-# 4.1 Inputs ####
-
-projYrs<-ProjYears$GammaCalcs
+Determine each gamma for the krill fishery based on the respective predator attributes. Here the decision rule is applied such that annual catch as a proportion of Krill B0 is the minimum catch to for the krill population to be reduced to the target level.
 
 
-# 4.3 Calculate parameters from inputs ####
-# 4.4 Illustrative plots ####
+```{r sSinglePredator_Krill,echo=FALSE,eval=TRUE}
 
+parms<-list(pE = EnvTimeSeries
+           ,pP = Krill
+           ,pC  = Pred
+           ,pF  = Fishery
+           ,catch = 0)
+
+parms$pP$modelK$changingK <-FALSE  # environment remains constant for the duration
+
+# update each predator B0 and QBmax as if only predator in food web
+parms$pC<-lapply(parms$pC,function(pred,PreyB0,PreyProd){
+  pred$B0<-PreyProd/pred$QB
+  pred$QBmax<-nlm(findPredQBmax,(pred$QB*pred$B0),pred$QB,pred$B0,PreyB0,pred$Holling)$estimate
+  return(pred)},parms$pP$B0,dP(parms$pP$B0,parms$pP$par))
+names(parms$pC)<-names(Pred)
+
+estGfw<-FALSE
+if(estGfw){
+   GammaFWsinglePred<-as.vector(sapply(Pred,function(p,parms,Btarget,projYrs){
+       parms$pC<-list(p)
+       fwB0<-c(parms$pP$B0,as.vector(sapply(parms$pC,function(p){p$B0})))  # biomasses of krill/preds time 0 (from Ecopath)
+       names(fwB0)<-c(parms$pP$name,as.vector(sapply(parms$pC,function(p){p$name})))
+       return(optimise(find_G_FW,c(0,1),parms=parms,fwB0=fwB0,Btarget=Btarget,projYrs=projYrs)$minimum)
+       },parms,Fishery$K_target_0*Krill$B0,ProjYears$GammaCalcs))
+    names(GammaFWsinglePred)<-names(Pred)
+} else {
+  GammaFWsinglePred<-Gamma[c("Whale","Penguin")]
+}
+
+GammaFW<-rep(Gamma[1],2) 
+
+p3<-fnPlotFWwithGammaSinglePreds(GammaFW
+,parms,ProjYears,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,YticksN=6,LegendTopLeft=c(0.82,0.2),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p3))
+
+
+
+```
+
+## 5.2. Two predator-krill examples
+
+```{r sTwoPredator_Krill,echo=FALSE,eval=TRUE}
 parms<-list(pE = EnvTimeSeries
            ,pP = Krill
            ,pC  = Pred
            ,catch = 0)
 
-fwB0<-c(parms$pP$B0,as.vector(sapply(parms$pC,function(p){p$B0})))
-names(fwB0)<-c(parms$pP$name,as.vector(sapply(parms$pC,function(p){p$name})))
+parms$pP$modelK$changingK <-FALSE  # environment remains constant for the duration
 
-HoldChangingK<-parms$pP$modelK$changingK
-parms$pP$modelK$changingK <-FALSE
-#GammaFW<-optimise(find_G_FW,c(0,1),parms=parms,fwB0=fwB0,Btarget=Fishery$K_target_0*Krill$B0,projYrs=projYrs)$minimum
+# update each predator B0 assuming all predators in food web at proportions relative to krill abundance
+# note that this procedure corrects for any relative problems from Ecopath model
+
+B0multiplier<-(dP(Krill$B0,Krill$par)/sum(sapply(Predators,function(p){p$BrelP*p$QB})))
+parms$pC<-lapply(parms$pC,function(pred,B0multiplier,PreyB0){
+  pred$B0<-pred$BrelP*B0multiplier
+  pred$QBmax<-nlm(findPredQBmax,(pred$QB*pred$B0),pred$QB,pred$B0,PreyB0,pred$Holling)$estimate
+  return(pred)},B0multiplier,parms$pP$B0)
+names(parms$pC)<-names(Pred)
+
+estGfw<-FALSE
+if(estGfw){
+       fwB0<-c(parms$pP$B0,as.vector(sapply(parms$pC,function(p){p$B0})))  # biomasses of krill/preds time 0 (from Ecopath)
+       names(fwB0)<-c(parms$pP$name,as.vector(sapply(parms$pC,function(p){p$name})))
+       GammaFW<-optimise(find_G_FW,c(0,1),parms=parms,fwB0=fwB0,Btarget=Fishery$K_target_0*Krill$B0
+                       ,projYrs=ProjYears$GammaCalcs)$minimum
+} # end if
+
+# 4 Foodweb, fishing, no change environment, whales at B0
+GammaFW<-Gamma[1]
+ChangingK<-FALSE
+StartWhalesRelToB0<-1
+
+p4<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,YticksN=6,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p4))
 
 
-GammaFW<-0.4311957
+# 5 Foodweb, no fishing, changing environment, whales at B0
 
-parms$catch<-rep(0,ProjYears$YearsTotal)
-parms$catch[ProjYears$Fishery]<-GammaFW*Krill$B0
+GammaFW<-0
+ChangingK<-TRUE
+StartWhalesRelToB0<-1
 
-# parms$pP$modelK$changingK <-HoldChangingK
+p5<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,YticksN=6,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
-res<-ode(y=fwB0,times=seq(0,ProjYears$YearsTotal-1,0.2),func=fnFoodWeb_dBdt,parms=parms,method="rk4")
+suppressWarnings(print(p5))
 
+# 6 Foodweb, fishing, changing environment, whales at B0
 
-dPlot<-do.call(rbind,lapply(seq(2,ncol(res),1),function(s,B,B0){
-         return(data.frame(Taxon=rep(dimnames(B)[[2]][s],nrow(B)),Year=B[,1],Status=B[,s]/B0[(s-1)]))
-         },res,fwB0))
-dPlot$Taxon<-factor(dPlot$Taxon,levels=unique(dPlot$Taxon))
+GammaFW<-Gamma[1]
+ChangingK<-TRUE
+StartWhalesRelToB0<-1
 
-Ylim<-c(0,max(dPlot$Status))
-p<-ggplot(dPlot,aes(x=Year,y=Status,color=Taxon))+geom_line()
-p<-p+scale_color_manual(values=as.vector(c(Krill$plot$col,sapply(Pred,function(p){p$plot$col}))))
-p<-p+ylim(Ylim)+labs(title=paste0("Gamma FW = ",round(GammaFW,3)))
-p
+p6<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,YticksN=6,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
+suppressWarnings(print(p6))
 
+# 7 Foodweb, no fishing, no change environment, whales at 0.5*B0
 
+GammaFW<-0
+ChangingK<-FALSE
+StartWhalesRelToB0<-0.5
+
+p7<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,YticksN=5,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p7))
+
+# 8 Foodweb, fishing, no change environment, whales at 0.5*B0
+
+GammaFW<-Gamma[1]
+ChangingK<-FALSE
+StartWhalesRelToB0<-0.5
+
+p8<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,YticksN=5,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p8))
+
+# 9 Foodweb, no fishing, changing environment, whales at 0.5 B0
+
+GammaFW<-0
+ChangingK<-TRUE
+StartWhalesRelToB0<-0.5
+
+p9<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,YticksN=5,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p9))
+
+# 10 Foodweb, fishing, changing environment, whales at 0.5 B0
+
+GammaFW<-Gamma[1]
+ChangingK<-TRUE
+StartWhalesRelToB0<-0.5
+
+p10<-fnPlotFWwithGammaTwoPreds(GammaFW
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,YticksN=5,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+
+suppressWarnings(print(p10))
 
 ```
 
-# 6. Scenarios
 
-```{r Scenario_1, echo=FALSE, eval=TRUE}
+```{r graph_outputs,echo=FALSE,eval=TRUE}
+pWidth<-7
+pHeight<-5
+pDPI<-300
+pList<-list(p1  = list(p1 ,"Ecopath 01 Production")
+           ,p2  = list(p2 ,"Ecopath 02 Gamma")
+           ,p3  = list(p3 ,"Ecopath 03 FW 1 spp fishery")
+           ,p4  = list(p4 ,"Ecopath 04 FW 2 spp fishery")
+           ,p5  = list(p5 ,"Ecopath 05 FW no fishery change")
+           ,p6  = list(p6 ,"Ecopath 06 FW fishery change")
+           ,p7  = list(p7 ,"Ecopath 07 FW no fishery no change half whale")
+           ,p8  = list(p8 ,"Ecopath 08 FW fishery no change half whale")
+           ,p9  = list(p9 ,"Ecopath 09 FW no fishery change half whale")
+           ,p10 = list(p10,"Ecopath 10 FW fishery change half whale"))
+lapply(pList,function(p,W,H,D){
+  ggsave(filename=paste0(p[[2]],".png"),plot = p[[1]]
+      ,width = W,height = H,units = "cm",dpi = D)
+      },pWidth,pHeight,pDPI)
 
 ```
