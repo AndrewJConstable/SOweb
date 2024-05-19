@@ -14,17 +14,30 @@ fnPellaTomlinson_dBdt<-function(t,y,parms){
   list(dP(y,parms$PT$par)-fnM(y,parms$PT)-catch)
 }
 
+fnProjectMortality_dBdt<-function(t,y,parms){
+  list(-fnM(y,parms$PT))
+}
 
-#     2.2 Mortality function for population modelling ####
+#     2.2 Mortality function for population ODE ####
 fnM<-function(B,PT){if(PT$par$useMrate) return(PT$par$M*B) else 
        return(PT$par$Mmax*(B^PT$par$Holling$q)/((PT$par$Holling$p50)^PT$par$Holling$q+B^PT$par$Holling$q))}
 
 #     2.3 Setup routines to calculate parameters from input data ####
 findBmax_dP<-function(b,par){return(-log(dP(b,par)))}  # = 0.5K when phi=1
-findKrillB0<-function(par,Ppar,bmax,pmax,p){prod<-dP(par,Ppar); return((prod-p*pmax)^2)}
-findProdMaxGivenM<-function(b,PT) {return(-log(dP(b,PT$par)-fnM(b,PT)))}
-findMmax<-function(Mmax,PT,B0,pB0){PT$par$Mmax<-Mmax;return((fnM(B0,PT)-pB0)^2)}
+findKrillB0_propPmax<-function(par,Ppar,pmax,p){prod<-dP(par,Ppar); return((prod-p*pmax)^2)}
+findKrillB0_useM<-function(par,Ppar){prod<-dP(par,Ppar); return((prod-par*Ppar$M)^2)}
 
+
+findProdMaxGivenM<-function(b,PT) {
+  PT$par$useMrate<-TRUE
+  res<-ode(y=b,times=seq(0,1,1),func=fnPellaTomlinson_dBdt,parms=list(PT=PT,catch=0),method="rk4")
+    return(-log(res[2,2]-res[1,2]))}
+
+findMmax<-function(Mmax,PT,B0,pB0){
+    PT$par$useMrate<-FALSE
+    PT$par$Mmax<-Mmax
+    return((fnM(B0,PT)-pB0)^2)}
+  
 # 3.0 Predators ####
 
 PredCompetition <- function(Bp,Bc,H){if(H$doPC) return(1/(Bp/(Bc*H$c))^H$g) else return(0)}
@@ -118,7 +131,8 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   #    Mortality rate
   if(plotMrate){
     LineName<-"Rate"
-    Change  <- PT$par$M*B
+    PT$par$useMrate<-TRUE
+    Change  <- fnM(B,PT)
     Line    <- rep(LineName,length(B))
     pd      <- rbind(pd,data.frame(Line,B,Change))
   }
@@ -127,11 +141,9 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   if(plotMtypeH & !is.null(HollingExamples)){
     pd<-rbind(pd,do.call(rbind,lapply(seq(1,length(HollingExamples),1),function(h,H,B,PT){
       PT$par$Holling<-H[[h]]
-      
       PT$par$useMrate<-FALSE
-      PB0<-PT$B0*PT$par$M
-      PT$par$Mmax<-nlm(findMmax,PB0,PT,PT$B0,PB0)$estimate
-      Change  <- fnM(B,PT)
+      PT$par$Mmax<-nlm(findMmax,dP(PT$B0,PT$par),PT,PT$B0,dP(PT$B0,PT$par))$estimate
+      Change<-fnM(B,PT)
       Line    <- rep(paste0(names(H)[h]),length(B))
       return(data.frame(Line,B,Change))
     },HollingExamples,B,PT)))           
@@ -192,6 +204,60 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
 } # end fn
 
 
+fnPlotPellaTomlinson_FWconfig<-function(Env,PT,pC,Krange=c(0,1),Ylim=NULL){
+  # create dataframe ####
+  #    X-axis ####
+  B<-seq(Krange[1],Krange[2],1E-2)*max(Env) 
+   #    Production without mortality for veach environment
+  pd<-do.call(rbind,lapply(Env,function(E,B,PT){
+          PT$par$K<-E
+          Change  <- dP(B,PT$par)
+          LineName<-paste0("Prod_",E)
+          Line    <- rep(LineName,length(B))
+          return(data.frame(Line,B,Change))
+        },B,PT))
+  #    Mortality - functional relationships
+    pd<-rbind(pd,do.call(rbind,lapply(seq(1,length(pC),1),function(p,pC,B,pP){
+      
+              Change<-do.call(c,lapply(B,function(B,pC,pP){   
+                      return(pC$B0*pC$QBmax*fnHolling(B,pC$B0,pC$Holling))
+                      },pC[[p]],pP))
+              LineName<-paste0("Mort_",pC[[p]]$name)
+              Line    <- rep(LineName,length(B))
+              return(data.frame(Line,B,Change))
+             },pC,B,PT)))
+
+    pd$Line<-factor(pd$Line,levels=unique(pd$Line))
+    Xlim<-Krange*max(Env)
+   
+  if(is.null(Ylim)) Ylim<-c(0,ceiling(max(pd$Change,na.rm=TRUE)/5)*5)
+  
+  
+  # plot graph ####
+  p<-ggplot(pd)+labs(x="Biomass",y="Production")
+  p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
+             ,panel.grid.major = element_blank()
+             ,panel.grid.minor = element_blank()
+             ,axis.line=element_line(colour="black")
+             ,axis.text = element_text(size=14)
+             ,axis.title=element_text(size=18)
+  )# end theme
+  p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=6)
+                           ,expand=expansion(mult = c(0,0.05)))
+  p<- p+scale_y_continuous(breaks=seq(Ylim[1],Ylim[2],length.out=5),expand=expansion(mult = c(0,0.05)))
+  p<- p+guides(
+    x = guide_axis(minor.ticks = TRUE),
+    y = guide_axis(minor.ticks = TRUE)
+  )
+  
+  p<-p+geom_line(aes(x=B,y=Change,colour=Line))
+ # p<-p+scale_colour_manual(values=as.vector(lineColours))
+  p<- p+theme(legend.key=element_blank()) # removes boxes from around lines in legend
+  
+  return(p)
+} # end fn
+
+
 fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
                              ,parms,ProjYears,Xlim=NULL,XticksN=7,Ylim=NULL,YticksN=6,useStatus=TRUE, doLegend=TRUE,LegendTopLeft=c(0.6,0.25),doAxisLabels=TRUE,LineColours=NULL){
   
@@ -230,6 +296,7 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
   
   pd$Mortality<-factor(pd$Mortality,levels=unique(pd$Mortality))
   
+  print(pd$B[1])
   # Plotting routine ####  
   if(useStatus)                pd$B<-pd$B/pd$B[1]
   if(is.null(Xlim))            Xlim<-c(0,max(pd$time,na.rm=TRUE))
@@ -406,7 +473,7 @@ fnPlotFWwithGammaTwoPreds<-function(GammaFW # vector with names for mortality ty
       parms$catch[yrsFishery]<-G*parms$pP$B0  # set the catch for the period of the fishery 
       
       parms$pP$modelK$changingK <-ChangingK
-      
+
       res<-ode(y=fwStart,times=seq(0,plotYrs-1,0.2),func=fnFoodWeb_dBdt,parms=parms,method="rk4")
       # develop dataframe with relevant grouping variables
       if(useStatus){
@@ -423,7 +490,7 @@ fnPlotFWwithGammaTwoPreds<-function(GammaFW # vector with names for mortality ty
                             ,Taxon=rep(dimnames(B)[[2]][s],nrow(B))
                             ,Year=B[,1]
                             ,Status=B[,s]))
-        },res,fwB0,G))
+        },res,G))
       }
 
     pd$Taxon<-factor(pd$Taxon,levels=unique(pd$Taxon))

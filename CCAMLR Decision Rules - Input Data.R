@@ -34,15 +34,16 @@ Env<-list( name = "Env"
 Krill<-list( name="Krill"
              ,plot = list(col = "#FF9900")
              ,par = list(K = Env$Period$P1$data
-                       , r=3.1     # 3
-                       , phi=1 # 0.1
-                       , M = NA
+                       , r=2     # 3.1
+                       , phi=1.0 # 0.1
+                       , M = 0.8
                        , useMrate=FALSE
                        , Mmax=NA
                        , Holling = list(p50 = 0.3   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
                                         ,q = 2   )    # 3.5   Holling curvature
                        ) # end par
-            ,B0asPropKrillMaxProd=0.766 # 0.97
+            ,useMtoFindB0=FALSE
+            ,B0asPropKrillMaxProd=0.77 # 0.97
             ,ePB = 3.09 # ecopath Production to Biomass ratio: Hill et al 2021 Euphausids
             ,modelK = list(changingK=TRUE)
 ) # end Krill
@@ -53,7 +54,7 @@ Predators<-list(
             ,plot = list(col = "#0033FF")
             ,QBhat=NA  # calculate from prey maximum production
             ,useHolling = TRUE
-            ,Holling = list(p50 = 0.2   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
+            ,Holling = list(p50 = 0.3   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
                             ,q = 2       # 3.5   Holling curvature
                             ,c=1         # relative impacts of predators on availability of prey
                             ,g=3         # g>=1 delay in decline of effect of predator competition 
@@ -69,7 +70,7 @@ Predators<-list(
               ,plot = list(col = "#336633")
               ,QBhat=NA  # calculate from prey maximum production
              ,useHolling = TRUE
-             ,Holling = list(p50 = 0.3   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
+             ,Holling = list(p50 = 0.4   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
                             ,q = 2       # 3.5   Holling curvature
                             ,c=1         # relative impacts of predators on availability of prey
                             ,g=3         # g>=1 delay in decline of effect of predator competition 

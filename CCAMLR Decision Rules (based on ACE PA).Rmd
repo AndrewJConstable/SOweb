@@ -9,6 +9,7 @@ by Andrew Constable
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(ggplot2)
+library(ggpubr)
 library(deSolve)
 
 source("CCAMLR Decision Rules - Functions.R")
@@ -49,11 +50,18 @@ plotColours<-as.vector(c(Env$plot$col,Krill$plot$col,sapply(Predators,function(p
 names(plotColours)<-c(Env$name,Krill$name,sapply(Predators,function(p){p$name}),Fishery$name)
 
 EnvTimeSeries<-do.call(c,lapply(Env$Period,function(p){if(p$doFn) do.call(p$fn,list(p$years,p$data)) else rep(p$data,p$years)}))
-
 Krill$Bmax_dP<-nlm(findBmax_dP,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
-Krill$B0<-optimise(findKrillB0,interval=c(Krill$Bmax_dP,Krill$par$K),Ppar=Krill$par ,bmax=Krill$Bmax_dP ,pmax=dP(Krill$Bmax_dP,Krill$par) ,p=Krill$B0asPropKrillMaxProd )$minimum
-
+Krill$B0<-if(Krill$useMtoFindB0){
+    optimise(findKrillB0_useM,interval=c(Krill$Bmax_dP,Krill$par$K)
+             ,Ppar=Krill$par)$minimum
+   } else {
+  optimise(findKrillB0_propPmax,interval=c(Krill$Bmax_dP,Krill$par$K)
+           ,Ppar=Krill$par ,pmax=dP(Krill$Bmax_dP,Krill$par) 
+           ,p=Krill$B0asPropKrillMaxProd )$minimum
+   } # end findB0
 Krill$par$M<-dP(Krill$B0,Krill$par)/Krill$B0
+if(!Krill$par$useMrate) Krill$par$Mmax<-nlm(findMmax,dP(Krill$B0,Krill$par),Krill,Krill$B0,dP(Krill$B0,Krill$par))$estimate
+
 Krill$B_pmax_givenM<-nlm(findProdMaxGivenM,Krill$Bmax_dP,Krill)$estimate
 
 # 1.4 Illustrative plots ####
@@ -62,10 +70,10 @@ HollingExamples<-list( Whale   = Predators$Whale$Holling
 HollingExamples$Whale$p50<-HollingExamples$Whale$p50*Krill$B0  # correct scaling of p50 to new B0
 HollingExamples$Penguin$p50<-HollingExamples$Penguin$p50*Krill$B0
 
-p1<-fnPlotPellaTomlinson(Krill,plotColours,HollingExamples,Ylim=c(0,80))
+p1<-fnPlotPellaTomlinson(Krill,plotColours,HollingExamples,Ylim=c(0,60))
 p1
 print(paste0("Krill M             = ",Krill$par$M))
-print(paste0("Krill max Ingestion = ",Krill$par$Mmax))
+print(paste0("Krill max Mortality by mass = ",Krill$par$Mmax))
 
 
 
@@ -89,10 +97,9 @@ Gamma<-do.call(c,lapply(whichGamma,function(whichG,H,PT,Target,Yrs){
                         ,projYrs=Yrs)$minimum)
     } else {
                    PT$par$Holling<-H[[whichG]]
-                   PB0<-PT$B0*PT$par$M
                    PT$par$useMrate<-FALSE
-                   PT$par$Mmax<-nlm(findMmax,PB0,PT,PT$B0,PB0)$estimate
-                   return(optimise(find_G_Pop,c(0,1)
+                   PT$par$Mmax<-nlm(findMmax,dP(PT$B0,PT$par),PT,PT$B0,dP(PT$B0,PT$par))$estimate
+                   return(optimise(find_G_Pop,c(0,0.5)
                         ,PT=PT,B0=PT$B0,Btarget=Target*PT$B0
                         ,projYrs=Yrs)$minimum)
     } # end else
@@ -140,10 +147,10 @@ res<-as.data.frame(do.call(rbind,lapply(Pred,function(p,Bp){
 names(res)<-c("Predator","Krill","Ingest")
 
 res$Predator<-factor(res$Predator,levels = unique(res$Predator))
-#p<-ggplot(res,aes(x=Krill,y=Ingest,colour=Predator))+geom_line()
-#p<-p+scale_color_manual(values=PredColours)
-#p<-p+geom_vline(xintercept = Krill$B0,col="black",linetype=5)
-#p
+p<-ggplot(res,aes(x=Krill,y=Ingest,colour=Predator))+geom_line()
+p<-p+scale_color_manual(values=PredColours)
+p<-p+geom_vline(xintercept = Krill$B0,col="black",linetype=5)
+p
 
 
 ```
@@ -179,7 +186,7 @@ if(estGfw){
        parms$pC<-list(p)
        fwB0<-c(parms$pP$B0,as.vector(sapply(parms$pC,function(p){p$B0})))  # biomasses of krill/preds time 0 (from Ecopath)
        names(fwB0)<-c(parms$pP$name,as.vector(sapply(parms$pC,function(p){p$name})))
-       return(optimise(find_G_FW,c(0,1),parms=parms,fwB0=fwB0,Btarget=Btarget,projYrs=projYrs)$minimum)
+       return(optimise(find_G_FW,c(0,0.5),parms=parms,fwB0=fwB0,Btarget=Btarget,projYrs=projYrs)$minimum)
        },parms,Fishery$K_target_0*Krill$B0,ProjYears$GammaCalcs))
     names(GammaFWsinglePred)<-names(Pred)
 } else {
@@ -226,13 +233,18 @@ if(estGfw){
                        ,projYrs=ProjYears$GammaCalcs)$minimum
 } # end if
 
+# plot productivity for enviornment at beginning and end and mortality functions at beginning
+p<-fnPlotPellaTomlinson_FWconfig(c(100,80),parms$pP,parms$pC)
+p
+
+
 # 4 Foodweb, fishing, no change environment, whales at B0
 GammaFW<-Gamma[1]
 ChangingK<-FALSE
 StartWhalesRelToB0<-1
 
 p4<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1.25)
 ,YticksN=6,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p4))
@@ -245,8 +257,8 @@ ChangingK<-TRUE
 StartWhalesRelToB0<-1
 
 p5<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
-,YticksN=6,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,3)
+,YticksN=6,useStatus=TRUE,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p5))
 
@@ -257,7 +269,7 @@ ChangingK<-TRUE
 StartWhalesRelToB0<-1
 
 p6<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1.25)
 ,YticksN=6,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p6))
@@ -269,7 +281,7 @@ ChangingK<-FALSE
 StartWhalesRelToB0<-0.5
 
 p7<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,2.0)
 ,YticksN=5,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p7))
@@ -281,7 +293,7 @@ ChangingK<-FALSE
 StartWhalesRelToB0<-0.5
 
 p8<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,2.0)
 ,YticksN=5,LegendTopLeft=c(0.85,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p8))
@@ -293,7 +305,7 @@ ChangingK<-TRUE
 StartWhalesRelToB0<-0.5
 
 p9<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,2.0)
 ,YticksN=5,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p9))
@@ -305,7 +317,7 @@ ChangingK<-TRUE
 StartWhalesRelToB0<-0.5
 
 p10<-fnPlotFWwithGammaTwoPreds(GammaFW
-,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,60),XticksN=7,Ylim=c(0,2.0)
+,parms,ProjYears,ChangingK=ChangingK,startWhalesX=StartWhalesRelToB0,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,2.0)
 ,YticksN=5,LegendTopLeft=c(0.87,0.18),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p10))
@@ -333,3 +345,44 @@ lapply(pList,function(p,W,H,D){
       },pWidth,pHeight,pDPI)
 
 ```
+
+```{r pagePlot, echo=FALSE, eval=TRUE}
+ggarrange( NULL
+          ,NULL
+          ,p2 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+          ,p1 + font("x.text", size = 10)  + font("y.text", size = 10)  + font("y.title", size = 10)  + font("x.title", size = 10) + rremove("legend")
+          ,NULL
+          ,NULL
+          ,p3 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+          ,p4 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+
+          ,NULL
+          ,NULL
+          ,p7 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+          ,p8 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+
+          ,NULL
+          ,NULL
+          ,p5 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+          ,p6 + rremove("xlab") + rremove("ylab") + rremove("x.text")  + font("y.text", size = 10) + rremove("legend")
+
+          ,NULL
+          ,NULL
+          ,p9 + rremove("ylab")  + font("x.text", size = 10)  + font("y.text", size = 10) + rremove("legend")
+          ,p10 + rremove("ylab") + font("x.text", size = 10)  + font("y.text", size = 10) + rremove("legend")
+          ,labels = c("a. Assessment projection", "b. Krill productivity & mortality"
+                      , "", ""
+                      , "c. Krill - single predator scenarios", "d. Krill - two predator scenario"
+                      , "", ""
+                      , "e. Whale recovery G=0", "f. Whale recovery, G=..."
+                      , "", ""
+                      , "g. Production change, G=0", "h. Production change, G=..."
+                      , "", ""
+                      , "i. Production change, Whales, G=0", "j. Production change, Whales, G=...")
+                      , "", ""
+          , align = "v"
+          ,heights=c(0.1,1,0.1,1,0.1,1,0.1,1,0.1,1.5)
+          ,ncol = 2, nrow = 10)
+
+```
+
