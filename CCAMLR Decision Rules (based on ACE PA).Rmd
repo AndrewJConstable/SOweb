@@ -17,6 +17,52 @@ source("CCAMLR Decision Rules - Input Data.R")
 
 ```
 
+# Notes for Assessing CCAMLR decision rule
+Introduction
+A. current rule & expectations
+B. predator requirements
+C. dealing with growth and uncertainty - develop relative importance of each
+D. envirinmental variability and climate change
+E. current approach
+i. swarms as a form of hyperstability in krill density
+ii. local escapement versus global reduction
+F. what happens over different lengths of time
+i. recovery of predators 
+ii. is the escapement rule appropriate for which median
+
+
+Methods
+A. model to support assessment
+a. modelling environment to be able to insert climate modelling
+i. variable phytoplankton
+ii. vary the availability of the pool to krill cf copepods
+
+b. modelling krill and copepods
+i. surplus pdroduction
+ii. biomass with density dependent recruitment (2004 model)
+iii. age structured
+
+c. modelling predators
+i.  Ecopath-like model - Predator-production with instantaneous mortality due to starvation
+ii. Predator-production with delayed mortality due to starvation having gradual effect on mass
+iii. Predator-production as individual model with density-dependent recruitment 
+
+B. management system
+i. krill rule application
+ii. predator requirements & rule application
+
+
+Results
+i. the current rule and its expectations
+ii. variability and growth - which median to use once at target level (at end vs over whole projection period)
+iii. predator requirements and 75%
+iv. recovery of whales and climate change
+v. a new rule for predators
+vi. feedback metrics and adjustments (birth rate without density-dependent adjustment, population, pop-adj-diet)
+
+
+
+
 # 1. Introduction  
   
 This routine provides a general Schaeffer production model to explore general principles associated with the CCAMLR Decision Rule for Antarctic krill fisheries.  
@@ -42,6 +88,11 @@ The combined population effects of predator feeding, response to starvation, and
 
 The key attributes of a balanced system are that the total predator consumption is a proportion of the maximum available production of krill, the krill population is able to recover from the size at maximum production to the size at balance with predators in the time of the expected maximum age of the krill population (i.e. the recruitment rate is still stable), and the intrinsic rate of increase of krill is sufficient to achieve both these requirements. 
 
+
+Figure 9.7b shows a typical fishery production model and the expectation of how much production taken from the krill stock by predators with a constant mortality rate.  Mortality is expected to equal production at the equilibrium biomass of the Ecopath model, equivalent to the pre-exploitation biomass referred to as B0.  
+
+Figure 9.7 illustrates a number of issues that are problematic in the current assessment. In each scenario, the system is projected through a period with no fishing, followed by a fishing period for 20 years under a constant catch using gamma from the assessment with constant mortality rate for krill (the current assessment approach), and a recovery period for 30 years. Two predators are represented – a long-lived species (whales) and a short-lived one, penguins. The parameters (annual per biomass consumption, productivity, mortality) for these predators and for krill were derived from the standardised Ecopath models, the best science available on food web parameters (Suppl. Material). The functional relationships of the predators were approximated from the ecologies of these species (Bestley et al., 2020).
+
 ```{r krill_model, echo=FALSE, eval=TRUE}
 # 1.3 Calculate parameters from inputs ####
 # (note: order is important)
@@ -50,6 +101,8 @@ plotColours<-as.vector(c(Env$plot$col,Krill$plot$col,sapply(Predators,function(p
 names(plotColours)<-c(Env$name,Krill$name,sapply(Predators,function(p){p$name}),Fishery$name)
 
 EnvTimeSeries<-do.call(c,lapply(Env$Period,function(p){if(p$doFn) do.call(p$fn,list(p$years,p$data)) else rep(p$data,p$years)}))
+
+
 Krill$Bmax_dP<-nlm(findBmax_dP,0.5*Krill$par$K,Krill$par)$estimate  # guess if for phi=1
 Krill$B0<-if(Krill$useMtoFindB0){
     optimise(findKrillB0_useM,interval=c(Krill$Bmax_dP,Krill$par$K)
@@ -59,6 +112,8 @@ Krill$B0<-if(Krill$useMtoFindB0){
            ,Ppar=Krill$par ,pmax=dP(Krill$Bmax_dP,Krill$par) 
            ,p=Krill$B0asPropKrillMaxProd )$minimum
    } # end findB0
+
+
 Krill$par$M<-dP(Krill$B0,Krill$par)/Krill$B0
 if(!Krill$par$useMrate) Krill$par$Mmax<-nlm(findMmax,dP(Krill$B0,Krill$par),Krill,Krill$B0,dP(Krill$B0,Krill$par))$estimate
 
@@ -110,7 +165,7 @@ names(Gamma)<-whichGamma
 
 parms<-list(PT=Krill, Btarget=Fishery$K_target_0*Krill$B0 , HollingExamples= HollingExamples, catch=NULL, ProjYears = ProjYears)
 
-p2<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,Xlim=c(0,ProjYears$YearsTotal),XticksN=7,Ylim=c(0,1),YticksN = 5,LegendTopLeft=c(0.83,0.165))
+p2<-fnPlotPopWithGamma(Gamma,parms=parms,ProjYears=ProjYears,time0=-20,Xlim=c(0,ProjYears$YearsTotal),XticksN=8,Ylim=c(0,1.25),YticksN = 6,LegendTopLeft=c(0.83,0.165))
 
 suppressWarnings(print(p2))
 
@@ -196,7 +251,7 @@ if(estGfw){
 GammaFW<-rep(Gamma[1],2) 
 
 p3<-fnPlotFWwithGammaSinglePreds(GammaFW
-,parms,ProjYears,Xlim=c(0,60),XticksN=7,Ylim=c(0,1.25)
+,parms,ProjYears,time0=-20,Xlim=c(0,ProjYears$YearsTotal),XticksN=8,Ylim=c(0,1.25)
 ,YticksN=6,LegendTopLeft=c(0.82,0.2),doAxisLabels=TRUE,LineColours=plotColours)
 
 suppressWarnings(print(p3))

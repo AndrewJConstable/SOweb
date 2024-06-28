@@ -31,6 +31,8 @@
 library(RNetCDF)
 library(terra)
 library(viridis)
+library(vegan)
+library(ggplot2)
 
 # 2. Input Data ####
 
@@ -358,11 +360,6 @@ MEASOsummary<-do.call(rbind,lapply(useVar,function(v,m,fV,wO,wA){
 
 saveRDS(MEASOsummary,"MEASOareaTimeSeriesSummary.rds")
 
-#   1     2     3     4     5     6     7     8     9     10    11    12    13    14    15
-MEASOnames<-c("AOA", "AON", "AOS", "CIA", "CIN", "CIS", "EIA", "EIN", "EIS", "EPA", "EPN", "EPS", "WPA", "WPN", "WPS")
-SectorColours<-viridis(5)
-MEASOcolours<-do.call(c,lapply(SectorColours,function(sc){rep(sc,3)}))
-MEASOpoints<-rep(c(1,0,5),5)
 
 # create nMDS matrix - standardise data sets
 dnmds<-as.data.frame(do.call(cbind,lapply(useVar,function(v,d){
@@ -378,31 +375,60 @@ rnmds
 snmds<-as.data.frame(scores(rnmds))
 snmds<-cbind(MEASOsummary[MEASOsummary[,"var"]==useVar[1],c("measo","year")],snmds)
 snmds<-snmds[order(snmds[,"measo"],snmds[,"year"]),]
-snmds[,"MEASOarea"]<-factor(MEASOnames[snmds[,"measo"]])
+snmds[,"MEASOarea"]<-factor(MEASOnames[snmds[,"measo"]],levels = c("AOA", "AOS", "AON", "CIA", "CIS", "CIN", "EIA", "EIS", "EIN", "EPA", "EPS", "EPN", "WPA", "WPS", "WPN"))
+
 
 plotPoints1900<-snmds[snmds[,"year"]==1900,]
 plotPoints2020<-snmds[snmds[,"year"]==2020,]
 
+# MEASO colours ####
+MEASOcolRGBA<-matrix(c(2,    226, 20, 20, 1
+                       ,3,    242,113,113, 1
+                       ,1,    249,188,188, 1
+                       ,5,    236,133, 69, 1
+                       ,6,    243,177,136, 1                 
+                       ,4,    249,215,194, 1
+                       ,8,    135,141,199, 1                   
+                       ,9,    176,180,217, 1
+                       ,7,    209,211,233, 1
+                       ,11,    75,125,126, 1
+                       ,12,    95,158,160, 1
+                       ,10,   160,197,199, 1
+                       ,14,   132, 57,116, 1
+                       ,15,   198,122,181, 1
+                       ,13,   225,184,216, 1),ncol=5,byrow=TRUE)
+dimnames(MEASOcolRGBA)[[2]]<-c("Area","R","G","B", "Alpha")
+mc<-MEASOcolRGBA[order(MEASOcolRGBA[,"Area"]),]
+MEASOcols<-rgb(red=mc[,"R"],green=mc[,"G"],blue=mc[,"B"],names=MEASOnames,maxColorValue = 255)
+
+pointCols<-as.vector(c(MEASOcols[2],MEASOcols[5],MEASOcols[8],MEASOcols[11],MEASOcols[14]))
+names(pointCols)<-NULL #c("AO","CI","EI","EP","WP")
+
+SectorColours<-pointCols
+MEASOcolours<-do.call(c,lapply(SectorColours,function(sc){rep(sc,3)}))
+MEASOpoints<-rep(c(1,0,5),5)
+
+
 p <- ggplot(snmds, aes(x = NMDS1, y = NMDS2)) 
 p <- p+  geom_path(aes(colour = MEASOarea))
 p <- p+ scale_color_manual(values=MEASOcolours)
+p <- p+ geom_point(stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea),size=1)
 p <- p+ geom_point(data=plotPoints1900
-                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=4)
+                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=5)
 p <- p+ geom_point(data=plotPoints2020
-                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=2)
-p <- p+ scale_shape_manual(values=MEASOpoints,labels=MEASOnames)
-p <- p+ geom_text(x=1, y=2, label="Stress < 0.001")
-p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold")
-              , axis.text.x = element_text(colour = "black", face = "bold", size = 12)
-                     ,legend.text = element_text(size = 12, face ="bold", colour ="black") 
-                     ,legend.position = "right"
-                      ,legend.title = element_text(size = 14, colour = "black", face = "bold")
-              , axis.title.y = element_text(face = "bold", size = 14) 
-              , axis.title.x = element_text(face = "bold", size = 14, colour = "black") 
-              , panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2)
-                ,legend.key=element_blank()
-)# end theme
-p <- p+ labs(x = "NMDS1", y = "NMDS2")
-
+                   ,stat="identity",aes(x=NMDS1,y=NMDS2,colour=MEASOarea,fill=MEASOarea,shape=MEASOarea),size=3)
+p <- p+ scale_shape_manual(values=MEASOpoints) #,labels=MEASOnames)
+#p <- p+ geom_text(x=1, y=2, label="Stress < 0.001")
+p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12)
+              , axis.text.x = element_text(colour = "black", size = 12)
+              ,legend.text = element_text(size = 12, colour ="black") 
+              ,legend.position = "right"
+              ,legend.title = element_text( size = 14, colour = "black")
+#              ,axis.title.y = element_text(face = "bold", size = 14) 
+#              ,axis.title.x = element_text(face = "bold", size = 14, colour = "black") 
+              ,panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, linewidth = 1.2)
+              ,legend.key=element_blank()
+              )# end theme
+p <- p+ labs(x = "", y = "")
 p
 

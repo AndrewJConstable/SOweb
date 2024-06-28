@@ -165,14 +165,17 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   
   
   # plot graph ####
-  p<-ggplot(pd)+labs(Title="Annual Production Curve",x="Biomass",y="Production")
+  p<-ggplot(pd)+labs(Title="Annual Production Curve",x="Biomass",y="Production",colour="Lines")
   p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
              ,panel.grid.major = element_blank()
              ,panel.grid.minor = element_blank()
              ,axis.line=element_line(colour="black")
              ,axis.text = element_text(size=14)
              ,axis.title=element_text(size=18)
+             ,legend.title=element_text(size=14)
+             ,legend.text=element_text(size=12)
   )# end theme
+  p<-p + coord_fixed(1)
   p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=6)
                            ,expand=expansion(mult = c(0,0.05)))
   p<- p+scale_y_continuous(breaks=seq(Ylim[1],Ylim[2],length.out=5),expand=expansion(mult = c(0,0.05)))
@@ -185,20 +188,20 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   p<- p+geom_vline(xintercept=PT$B0,colour="black",linetype="twodash") # B0
   
   p<-p+geom_line(aes(x=B,y=Change,colour=Line))
-  p<-p+scale_colour_manual(values=as.vector(lineColours))
+  p<-p+scale_colour_manual(labels=c("Krill productivity","Mortality = 0.8","Mortality = Wide-ranging predator    ","Mortality = Localised predator"),values=as.vector(lineColours))
   p<- p+theme(legend.key=element_blank()) # removes boxes from around lines in legend
   
   # now do colours and line types as chosen                   
   #  ,colour="darkgreen",linetype="dashed")+geom_vline(xintercept=BatPmaxWithMfn,colour="darkgreen",linetype="dotted")
-  p<-p+geom_vline(xintercept=Maxima,colour=as.vector(lineColours),linetype=rep("dotted",length(lineColours)))
+  #p<-p+geom_vline(xintercept=Maxima,colour=as.vector(lineColours),linetype=rep("dotted",length(lineColours)))
   
   # annotations
-  p<- p+annotate("text",x=PT$B0*1.05, y=(Ylim[2]-Ylim[1])*1E-1, label="B[0]",parse=TRUE,hjust=0,vjust=0)
+  p<- p+annotate("text",x=PT$B0*1.02, y=(Ylim[2]-Ylim[1])*1E-1, label="B[0]",parse=TRUE,hjust=0,vjust=0, size=5, fontface = "italic")
   
-  p<- p+annotate("text",x=Maxima[1], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (0)"      ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
-  p<- p+annotate("text",x=Maxima[2], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (rate)"   ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
-  p<- p+annotate("text",x=Maxima[3], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (whale)"  ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
-  p<- p+annotate("text",x=Maxima[4], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (penguin)",parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
+#  p<- p+annotate("text",x=Maxima[1], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (0)"      ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
+#  p<- p+annotate("text",x=Maxima[2], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (rate)"   ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
+#  p<- p+annotate("text",x=Maxima[3], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (whale)"  ,parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
+#  p<- p+annotate("text",x=Maxima[4], y=(Ylim[2]-Ylim[1])*5E-2, label="hat(P): M (penguin)",parse=TRUE,hjust=0,vjust=0.5,angle=90,size=3)
   
   return(p)
 } # end fn
@@ -258,8 +261,11 @@ fnPlotPellaTomlinson_FWconfig<-function(Env,PT,pC,Krange=c(0,1),Ylim=NULL){
 } # end fn
 
 
+
+
+
 fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
-                             ,parms,ProjYears,Xlim=NULL,XticksN=7,Ylim=NULL,YticksN=6,useStatus=TRUE, doLegend=TRUE,LegendTopLeft=c(0.6,0.25),doAxisLabels=TRUE,LineColours=NULL){
+                             ,parms,ProjYears,time0,Xlim=NULL,XticksN=7,Ylim=NULL,YticksN=6,useStatus=TRUE, doLegend=TRUE,LegendTopLeft=c(0.6,0.25),doAxisLabels=TRUE,LineColours=NULL){
   
   LineColours<-plotColours
 
@@ -296,14 +302,20 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
   
   pd$Mortality<-factor(pd$Mortality,levels=unique(pd$Mortality))
   
-  print(pd$B[1])
   # Plotting routine ####  
   if(useStatus)                pd$B<-pd$B/pd$B[1]
   if(is.null(Xlim))            Xlim<-c(0,max(pd$time,na.rm=TRUE))
   if(is.null(Ylim))            Ylim<-c(0,max(pd$B,na.rm=TRUE))
   
   pd<-pd[pd$time>=Xlim[1] & pd$time<=Xlim[2] & !is.na(pd$B),] # restrict plot to x limits & remove NAs from dataframe
-  
+
+# adjust everyuthing to time0 for plotting ####
+ pd$time<-pd$time+time0
+  Xlim<-Xlim+time0
+  yrFishingStarts<-ProjYears$Fishery[1]+time0
+  yrFishingEnds  <-ProjYears$Fishery[length(ProjYears$Fishery)]+time0
+
+  # plot ####  
   p<-ggplot(pd)+labs(x="Year",y="Status")
   p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
              ,panel.grid.major = element_blank()
@@ -311,9 +323,15 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
              ,axis.line=element_line(colour="black")
              ,axis.text = element_text(size=14)
              ,axis.title=element_text(size=18)
-             ,legend.position = LegendTopLeft
-             ,legend.background = element_rect(fill="white",size=0.5,linetype="solid",colour="black")
+             ,legend.title=element_text(size=14)
+             ,legend.text=element_text(size=12)
+#             ,legend.position.inside = c(0.99,0.1)
+#             ,legend.justification.inside = c(1, 0)
+#             ,legend.background = element_rect(fill="white",size=0.5,linetype="solid",colour="black")
+             ,legend.key=element_blank()
   )# end theme
+  p<- p + coord_fixed(ratio=0.6*(Xlim[2]-Xlim[1])/(Ylim[2]-Ylim[1]))  # scale the same as productivity graph
+
   p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=XticksN)
                            ,limits=Xlim
                            ,expand=expansion(mult = c(0,0.05)))
@@ -326,27 +344,41 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
   )
   
   p<- p+geom_hline(yintercept=c(0.2,0.75,1.0),colour=c("black","black","black"),linetype=c("dotted","dotted","dotted"))
-  p<- p+geom_vline(xintercept=c((ProjYears$Fishery[1]-1)
-                                ,ProjYears$Fishery[length(ProjYears$Fishery)]
-                                ,(ProjYears$Fishery[length(ProjYears$Fishery)]+ProjYears$Recovery))
+  p<- p+geom_vline(xintercept=c((  yrFishingStarts-1)
+                                ,yrFishingEnds
+                                ,(yrFishingEnds+ProjYears$Recovery))
                    ,colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
   
-  p<- p+geom_line(aes(x=time,y=B,colour=Mortality),linewidth=1)
+  p<- p+geom_line(aes(x=time,y=B,colour=Mortality),linewidth=0.5)
   if(!is.null(LineColours)) {
     lColours<-c("black",LineColours[c("Whale","Penguin")])
     names(lColours)<-NULL
-    p<- p+scale_colour_manual(values=lColours, labels= c(bquote(paste( "Rate:      ",gamma," = ",.(round(Gamma[1],3))))
-                                                         ,bquote(paste("Whale:    ",gamma," = ",.(round(Gamma[2],3))))
-                                                         ,bquote(paste("Penguin: ",gamma," = ",.(round(Gamma[3],3))))
+    p<- p+scale_colour_manual(values=lColours, labels= c(bquote(paste( "0.8                                : ",gamma," = ",.(round(Gamma[1],3))))
+                                                         ,bquote(paste("Wide-ranging predator : ",gamma," = ",.(round(Gamma[2],3)),"      "))
+                                                         ,bquote(paste("Localised predator       : ",gamma," = ",.(round(Gamma[3],3))))
     ))
     #levels(pd$Mortality),' : ',expression(gamma),' = ',round(Gamma,3)))
-  }
-  p<- p+theme(legend.key=element_blank())
+    # annotations
+    p<- p+annotate("text",x=Xlim[1]+10, y=1.24, label="Reference",parse=TRUE,hjust=0.5,vjust=0, size=4.5, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=1.235, label="Levels",parse=TRUE,hjust=0.5,vjust=1, size=4.5, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=1.005, label="Pre-exploitation",parse=TRUE,hjust=0.5,vjust=0, size=3.8, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=0.755, label="Target",parse=TRUE,hjust=0.5,vjust=0, size=3.8, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=0.745, label="Escapement",parse=TRUE,hjust=0.5,vjust=1, size=3.8, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=0.205, label="Depletion",parse=TRUE,hjust=0.5,vjust=0, size=3.8, fontface = "italic")
+    p<- p+annotate("text",x=Xlim[1]+10, y=0.195, label="Limit",parse=TRUE,hjust=0.5,vjust=1, size=3.8, fontface = "italic")
+
+    p<- p+annotate("text",x=(yrFishingStarts-1+yrFishingEnds)/2, y=0.5, label="Fishery",parse=TRUE,hjust=0.5,vjust=0.5, size=4.5, fontface = "bold")
+    p<- p+annotate("text",x=(yrFishingEnds+ProjYears$Recovery/2), y=0.5, label="Recovery",parse=TRUE,hjust=0.5,vjust=0.5, size=4.5, fontface = "bold")
+    
+      }
   return(p)
 } # end fn
 
+
+
+
 fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality type
-                             ,parms,ProjYears,ChangingK=FALSE
+                             ,parms,ProjYears,time0,ChangingK=FALSE
                              ,Xlim=NULL,XticksN=7,Ylim=NULL,YticksN=6,useStatus=TRUE
                              , doLegend=TRUE,LegendTopLeft=c(0.6,0.25),doAxisLabels=TRUE
                              ,LineColours=NULL){
@@ -402,6 +434,12 @@ fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality
   pd<-pd[pd$Year>=Xlim[1] & pd$Year<=Xlim[2] & !is.na(pd$Status),] # restrict plot to x limits & remove NAs from dataframe
   pColTaxa<-as.vector(sapply(levels(pd$Scenario),function(s,pd){unique(pd$Taxon[pd$Scenario==s])},pd))
 
+    # adjust everyuthing to time0 for plotting ####
+  pd$Year<-pd$Year+time0
+  Xlim<-Xlim+time0
+  yrFishingStarts<-ProjYears$Fishery[1]+time0
+  yrFishingEnds  <-ProjYears$Fishery[length(ProjYears$Fishery)]+time0
+  
   p<-ggplot(pd)
   p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
              ,panel.grid.major = element_blank()
@@ -409,9 +447,15 @@ fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality
              ,axis.line=element_line(colour="black")
              ,axis.text = element_text(size=14)
              ,axis.title=element_text(size=18)
-             ,legend.position = LegendTopLeft
-             ,legend.background = element_rect(fill="white",size=0.5,linetype="solid",colour="black")
+             ,legend.title=element_text(size=14)
+             ,legend.text=element_text(size=12)
+             
+#             ,legend.position = LegendTopLeft
+#             ,legend.background = element_rect(fill="white",size=0.5,linetype="solid",colour="black")
   )# end theme
+  
+  p<- p + coord_fixed(ratio=0.6*(Xlim[2]-Xlim[1])/(Ylim[2]-Ylim[1]))  # scale the same as productivity graph
+  
   p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=XticksN)
                            ,limits=Xlim
                            ,expand=expansion(mult = c(0,0.05)))
@@ -424,9 +468,8 @@ fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality
   )
   
   p<- p+geom_hline(yintercept=c(0.2,0.75,1.0),colour=c("black","black","black"),linetype=c("dotted","dotted","dotted"))
-  p<- p+geom_vline(xintercept=c((ProjYears$Fishery[1]-1)
-                                ,ProjYears$Fishery[length(ProjYears$Fishery)]
-                                ,(ProjYears$Fishery[length(ProjYears$Fishery)]+ProjYears$Recovery))
+  p<- p+geom_vline(xintercept=c(yrFishingStarts-1,yrFishingEnds
+                                ,yrFishingEnds+ProjYears$Recovery)
                    ,colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
   
   p<- p+geom_line(aes(x=Year,y=Status,col=Scenario,linetype=Scenario),linewidth=1)
@@ -434,10 +477,10 @@ fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality
     lColours<-LineColours[pColTaxa]
     names(lColours)<-NULL
     p<- p+scale_linetype_manual(values=c("solid","solid","twodash","twodash")
-                                , labels= c("Krill (Whale scenario)","Whale","Krill (Penguin scenario)","Penguin"))
+                                , labels= c("Krill (Scenario wide-ranging predator)","Wide-ranging predator","Krill (Scenario localised predator)","Localised predator"))
     
     p<- p+scale_colour_manual(values=lColours
-                              , labels= c("Krill (Whale scenario)","Whale","Krill (Penguin scenario)","Penguin"))
+                              , labels= c("Krill (Scenario wide-ranging predator)","Wide-ranging predator","Krill (Scenario localised predator)","Localised predator"))
     p<-p+labs(x="Year",y="Status"
               ,colour=bquote(paste( "Scenario (",gamma," = ",.(round(Gamma[1],3)),")"))
               ,linetype=bquote(paste( "Scenario (",gamma," = ",.(round(Gamma[1],3)),")")))  
@@ -447,6 +490,7 @@ fnPlotFWwithGammaSinglePreds<-function(GammaFW # vector with names for mortality
 } # end fn
 
 
+############ NOTE: NOT CORRECTED FOLLOWING FOR time0
 
 fnPlotFWwithGammaTwoPreds<-function(GammaFW # vector with names for mortality type
                                          ,parms,ProjYears,ChangingK=FALSE

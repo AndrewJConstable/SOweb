@@ -1,0 +1,56 @@
+---
+title: "Constable Chapter 9 Supplementary Material"
+author: "Andrew Constable"
+date: "2024-06-25"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+This supplementary material summarises the mathematical and statistical methods used to generate Figures 9.2, 9.5, 9.7, 9.8 and for Box 9.1. 
+
+Acronyms used in these notes are:  
+  
+MEASO   Marine Ecosystem Assessment for the Southern Ocean
+
+
+## Figure 9.2: Summary physical attributes
+
+Figure 9.2 illustrates the differences between 
+Figure 9.2: Summary physical attributes, mean values for austral spring (November-December; a period of peak 136 production), of areas of the Marine Ecosystem Assessment of the Southern Ocean derived, for consistency, from Earth system projections using ACCESS ESM1.5 SSP5-8.5 (business-as-usual) (Ziehn et al., 2020). Derivation of areas from Sectors and Zones is shown (see text for details), including acronyms for each area. Size of box for Seafloor Depth represents size of the MEASO area. For each attribute, differences are between a recent period (R), 1981-2000, and for the end of the century (E),2081-2100 (see Supplementary Material). PAR is Photosynthetically Active Radiation.
+
+
+## Figure 9.5: Spatial differences in productivity and food webs in the Southern Ocean  
+
+### Mean annual net primary productivity
+
+Time series estimates of net primary productivity, $mg~{\sf Carbon}.m^2 .{\sf day}^{-1}$, are derived from satellite products.  Ryan-Keogh et al. (2023) provide a new product (https://doi.org/10.5281/zenodo.10829966) combining 5 common algorithms, as is usual practice to overcome the biases in each: Eppley-VGPM, Behrenfeld-VGPM, Behrenfeld-CbPM, Westberry-CbPM and Silsbe-CAFE.
+
+Each circle in the Figure 9.5a represents mean annual net primary productivity over the period 2001-2020for a MEASO 
+
+Figure 9.5: Spatial differences in productivity and food webs in the Southern Ocean.  (a) Mean annual net primary productivity from combined metrics of production (2001 to 2020) (data from Ryan-Keogh et al., 2023), for each MEASO Area (see Figure 9.2 for meanings of acronyms), as well as combined for each sector excluding the Northern Zone (all means: CV<0.2; see Supplementary Material).  
+
+### Summary of relative biomass of taxa in different Ecopath models
+
+(b) Biomass of different taxa relate to protist biomass estimated in different Ecopath models: East Pacific Antarctic – West Antarctic Peninsula North (EPA-APN, Dahood et al., 2019) and South (EPA-APS, Ballerini et al., 2014), Atlantic Subantarctic (AOS; Scotia Arc, Hill et al., 2012), Central Indian Antarctic (CIA; Prydz Bay, McCormack et al., 2019), Central Indian Subantarctic (CIS; Kerguelen Plateau, Subramaniam et al., 2020), Central Indian Northern (CIN; Prince Edward-Marion, Gurney et al., 2014), West Pacific Antarctic (WPA; Ross Sea, Pinkerton et al., 2010). Inset: non-metric multidimensional scaling showing degree of differences between food-web structures in the Ecopath models (stress<0.001, colours relate to sectors in (a); see Supplementary Materials).
+
+
+
+
+## Figure 9.7: Theoretical considerations of the CCAMLR rule for deciding catch limits for the Antarctic krill fishery
+
+Figure 9.7: Theoretical considerations of the CCAMLR rule for deciding catch limits for the Antarctic krill fishery. (a) Expectations in the CCAMLR yield model of a catch limit derived from gamma times a survey estimate of pre-exploitation biomass (B0) for deterministic biomass projections of Antarctic krill based on the Pella-Tomlinson production model and mortality functions in (b). Gamma associated with each curve provided in the legend. Status is the krill biomass relative to the pre-exploitation level.  Fishing occurs during the fishery period followed by a recovery period. See text for details on the different reference levels and the recovery period. (b) Pella-Tomlinson production model based on maximum production to biomass ratio (r) for Antarctic krill of 2.0 yr-1.  Mortality functions are a constant instantaneous mortality rate (0.8 yr-1; constant M) and two examples of a Holling Type III functional feeding relationship – a wide-ranging predator able to continue to find prey, and a localised predator that has greater difficulty finding prey as the prey decline.  Mortalities from all functions are expected to be equal if the pre-exploitation population is in equilibrium. (c) Projections of a dynamic predator-krill model under constant catch from a CCAMLR-like assessment using constant M.  Krill are modelled using the Pella-Tomlinson productivity model and krill mortality from consumption of krill by the predator.  The predator biomass is modelled using Ecopath parameters of consumption, production, respiration and mortality from Hill et al. (2021).  Consumption is varied according to the functional feeding relationships in (b).  Two scenarios were projected – the wide-ranging predator used parameters for baleen whales; the localised predators used parameters for penguins. (see Supplementary Material for details).
+
+## Figure 9.8: Illustration of velocity of changes in the physical environment of each MEASO area
+
+Figure 9.8: Illustration of velocity of changes in the physical environment of each MEASO area (acronyms detailed in Figure 9.2) projected from 1900 (large symbols) to 2020 (small symbols) to 2100 using outputs from Earth system projections using ACCESS ESM1.5 SSP5-8.5 (business-as-usual) (Ziehn et al., 2020).  Non-metric multidimensional scaling is used to plot the similarities of two-decade periods in their mean conditions for austral spring (November- December; a period of peak production) of photosynthetically active radiation, surface temperature, mixed layer depth and sea ice concentration (stress <0.001; see Supplementary Material).
+
+
+## Box 1 Figure: Coastal ice free habitat
+
+This map was supplemented with analysis of the area (km2) of ice-free habitat within 5km of the coast in MEASO areas (using results from Lee et al., 2017, coloured circles are current area, grey circles are predicted area for 2100)(colours and symbols as in Figure 9.2). 
+
+

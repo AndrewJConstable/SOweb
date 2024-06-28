@@ -1,7 +1,7 @@
 # CCAMLR Decision Rules - Input data
 
-ProjYears<-list(YearsTotal = 60
-                ,Fishery    = c(11:30) # accounting for Year 0 in dataframe
+ProjYears<-list(YearsTotal  = 70
+                ,Fishery    = c(21:40) # accounting for Year 0 in dataframe
                 ,Recovery   = 20
                 ,GammaCalcs = 20
 ) # end ProjYears
@@ -19,14 +19,15 @@ Env<-list( name = "Env"
                                             ,fn = NULL
                                             ,data = 100)
                                 ,P3 = list( years = 20
-                                            ,doFn = TRUE
+                                            ,doFn = FALSE
                                             ,fn = function(yrs,d){t<-c(1:yrs);100-(t-1)*1.0}
                                             ,data = 100)
                                 ,P4 = list( years = 60
-                                            ,doFn = TRUE
+                                            ,doFn = FALSE
                                             ,fn = function(yrs,d){rep(80,yrs)}
                                             ,data = 100)
            ) # end Period data
+           ,FeWWp = 120/55.84/5E-6 # wet weight phytoplankton from iron 
 ) # end environment
 
 # 2.0 Krill ####
@@ -34,7 +35,7 @@ Env<-list( name = "Env"
 Krill<-list( name="Krill"
              ,plot = list(col = "#FF9900")
              ,par = list(K = Env$Period$P1$data
-                       , r=2     # 3.1
+                       , r=3.1    # from Hill et al 2021 ; used 2 previously
                        , phi=1.0 # 0.1
                        , M = 0.8
                        , useMrate=FALSE
@@ -45,6 +46,10 @@ Krill<-list( name="Krill"
             ,useMtoFindB0=FALSE
             ,B0asPropKrillMaxProd=0.77 # 0.97
             ,ePB = 3.09 # ecopath Production to Biomass ratio: Hill et al 2021 Euphausids
+            ,eQB = 17.26
+            ,eEE = 0.95
+            ,eA = 0.78
+            ,WWFeW = (117E-6)/0.23   # Fe kg from 1 kg wetweight krill in whale faeces Nicol whole krill & Ratnarajah 2016, 2016 (using Lavy - (0.0391E-3)/0.23)
             ,modelK = list(changingK=TRUE)
 ) # end Krill
 

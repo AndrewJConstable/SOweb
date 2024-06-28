@@ -32,7 +32,7 @@ oL <- list(sun = list(x0 = 0.6, y0 = 0.8, r0 = 0.05, rayLen = 0.03, rayN =12)  #
            ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges 
            ,Lmin = 200                      # plotting values = minimum light
            ,Lmax = 280                    # maximum light
-           ,Ints = 7                     # number of intervals
+           ,Ints = 8                     # number of intervals
            ) # light
 
 # Temperature
@@ -40,7 +40,7 @@ oT <- list(bulb = list(x0 = 0.75, y0 = 0.2, r0 = 0.05)  # as for light
            ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges
            ,Tmin = -2                     # minimum temperature
            ,Tmax = 14                     # maximum temperature
-           ,Ints = 16                     # number of intervals
+           ,Ints = 8                     # number of intervals
            ) # temp
 
 # Mixed Layer Depth
@@ -48,7 +48,7 @@ oM <- list(wave = list(x0 = 0.9, y0 = 0.8, w = 0.1, h = 0.33, t=2) # as for ligh
            ,rect = list(w = 0.05,h = 0.6) # proportions of X and Y ranges
            ,MLmin = 30                     # minimum MLD
            ,MLmax = 60                   # maximum MLD
-           ,Ints = 6                     # number of intervals
+           ,Ints = 3                     # number of intervals
            ) # MLD
 
 # Sea ice (on top of depth polygon)
@@ -312,7 +312,6 @@ if(is.na(oS$unit)){
   s25<-list(early = (SeaIce$conc25$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
             ,late = (SeaIce$conc25$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
 }
-print(SeaIce$MEASOarea)
 
 oS$box<-c(oS$box,list(
    poly95 = data.frame(x=c(oS$box$xmin,oS$box$xmin
@@ -452,6 +451,334 @@ plotMEASObaseMap<-function(shp){
   return(g)
 }
 
+plotLegend<-function(dIn,oD,oL,oT,oM,oS,Xlim,Ylim,Colours){ # based on plotMEASOareaSummary
+  
+  BottomTickLabelOffset<- 9  # add to bottom of Ylim
+  TopTickLabelOffset   <- 4  # add to top of Ylim
+  LeftOffset           <-10
+
+  Yrange<-(Ylim[2]-Ylim[1])
+  
+  # breakup input data ####
+  Depth  <- dIn$Depth
+  Light  <- dIn$Light
+  Temp   <- dIn$Temp
+  MLD    <- dIn$MLD
+  SeaIce <- dIn$SeaIce
+  
+  # reduce icon width size by multiplier ####
+  # icon width multiplier
+  im <- 0.7
+  areaXmaxAdj<-0.05
+  Xlim[2]<-Xlim[2]/im  # spread out x-axis but keep icons same
+
+  oD$rect$xmax     <- oD$rect$xmax-areaXmaxAdj
+  oD$XpropPerUnit  <- oD$XpropPerUnit*im
+  oL$sun$r0        <- oL$sun$r0*im
+  oL$rect$w        <- oL$rect$w*im
+  oT$bulb$r0       <- oT$bulb$r0*im
+  oT$rect$w        <- oT$rect$w*im
+  oM$wave$w        <- oM$wave$w*im
+  oM$rect$w        <- oM$rect$w*im
+  oS$rect$xmax     <- oS$rect$xmax-areaXmaxAdj
+  oS$XpropPerUnit  <- oS$XpropPerUnit*im
+  
+  # depth polygon calculations ####
+  Xrange<- 10 # fixed for legend
+  oD$box<-list(xmin = (oD$rect$xmax-Xrange*oD$XpropPerUnit)*Xlim[2]
+               ,xmax = oD$rect$xmax*Xlim[2]
+               ,ymin = oD$rect$ymin*Ylim[2]
+               ,ymax = (oD$rect$ymin+oD$rect$h)*Ylim[2])
+  
+  useProp<-Depth$prop>0
+  X0    <- oD$Xstart
+  
+  dX<-c(X0,Depth$prop[useProp]*Depth$TotalArea)
+  OriginDepth<-if(Depth$MaxHeight>=0) 0 else Depth$MaxHeight 
+  dY<-c(OriginDepth,Depth$depth[useProp])   
+  
+  dX<-c(dX,dX[1]); dY<-c(dY,dY[length(dY)]) # returning the line to close the polygon
+  dX <-  (dX-oD$Xstart)/oD$unit*oD$XpropPerUnit*Xlim[2]+oD$box$xmin
+  
+  
+  dY<-(oD$rect$ymin+oD$rect$h)*Ylim[2]-dY/Depth$depth[length(Depth$depth)]*oD$rect$h*Yrange
+  
+  xTickLast<-  floor((Depth$TotalArea-oD$Xstart)/oD$unit)
+  xTickEnd <- (Depth$TotalArea--oD$Xstart)/oD$unit
+  
+  DepthInt<-seq(0,Depth$depth[length(Depth$depth)],-1000)
+  oD$box<-c(oD$box,list(
+    ticksX =  c(seq(0,xTickLast,1),xTickEnd)*oD$XpropPerUnit*Xlim[2]+oD$box$xmin 
+    ,ticksY = oD$box$ymax-DepthInt/(Depth$depth[length(Depth$depth)])*oD$rect$h*Yrange
+    ,poly = data.frame(x= dX, y= dY)
+  ))
+  
+  # light calculations ####
+  oL$sun$x<-oL$sun$x0*Xlim[2]
+  oL$sun$y<-oL$sun$y0*Ylim[2]
+  oL$sun$r<-oL$sun$r0*Xlim[2]
+  
+  thetaInt<-2*pi/oL$sun$rayN
+  theta<-seq(0,2*pi,thetaInt)
+  
+  oL$sun$poly<-as.data.frame(matrix(unlist(sapply(theta,function(t,sun,L,tI){
+    r<-c((sun$r-L),sun$r)
+    theta<-c(t,t+tI/2)
+    x<-cos(theta)*r+sun$x
+    y<-sin(theta)*r+sun$y
+    return(rbind(theta,x,y))
+  },oL$sun,oL$sun$rayLen*Xlim[2],thetaInt)),ncol=3,byrow=TRUE))
+  names(oL$sun$poly)<-c("theta","x","y")
+  
+  # background box to hide rays
+  oL$rectBG$xmin <- oL$sun$x-oL$rect$w*Xlim[2]/2
+  oL$rectBG$xmax <- oL$sun$x+oL$rect$w*Xlim[2]/2
+  oL$rectBG$ymin <- oL$rect$ymax-oL$sun$rayLen*Xlim[2] - oL$rect$h*Yrange
+  
+  # data box
+  oL$rect$xmin <- oL$sun$x-oL$rect$w*Xlim[2]/2
+  oL$rect$xmax <- oL$sun$x+oL$rect$w*Xlim[2]/2
+  oL$rect$ymax <- oL$sun$y - (oL$sun$r^2-(oL$rect$w*Xlim[2]/2)^2)^0.5
+  oL$rect$ymin <- oL$rect$ymax - oL$rect$h*Yrange
+  oL$rect$ymaxBG <- oL$sun$y - ((oL$sun$r-oL$sun$rayLen*Xlim[2])^2-(oL$rect$w*Xlim[2]/2)^2)^0.5
+  
+  
+  oL$ticksY <- oL$rect$ymax-(seq(oL$Lmin,oL$Lmax,length.out=(oL$Ints+1))-oL$Lmin)/(oL$Lmax-oL$Lmin)*oL$rect$h*Ylim[2]
+  oL$ticksX <- oL$rect$xmin- c(0,2)#oL$rect$w*Xlim[2]*c(0.4,0.6)
+  oL$poly <-data.frame(x = c(oL$rect$xmin,oL$rect$xmin,oL$rect$xmax,oL$rect$xmax)
+                       ,y = c(oL$rect$ymax
+                              ,oL$rect$ymax-(Light$early-oL$Lmin)/(oL$Lmax-oL$Lmin)*oL$rect$h*Ylim[2]
+                              ,oL$rect$ymax-(Light$late-oL$Lmin)/(oL$Lmax-oL$Lmin)*oL$rect$h*Ylim[2]
+                              ,oL$rect$ymax))
+  
+  
+  
+  # temperature thermometer calculations ####
+  oT$bulb$x<-oT$bulb$x0*Xlim[2]
+  oT$bulb$y<-oT$bulb$y0*Ylim[2]
+  oT$bulb$r<-oT$bulb$r0*Xlim[2]
+  oT$rect$xmin <- oT$bulb$x-oT$rect$w*Xlim[2]/2
+  oT$rect$xmax <- oT$bulb$x+oT$rect$w*Xlim[2]/2
+  oT$rect$ymin <- oT$bulb$y + (oT$bulb$r^2-(oT$rect$w*Xlim[2]/2)^2)^0.5
+  oT$rect$ymax <- oT$rect$ymin + oT$rect$h*Ylim[2]
+  
+  oT$ticksY <- (seq(oT$Tmin,oT$Tmax,length.out=(oT$Ints+1))-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
+  oT$ticksX <- oT$rect$xmin- c(0,2)
+
+  oT$tempShape <-data.frame(x = c(oT$rect$xmin,oT$rect$xmin,oT$rect$xmax,oT$rect$xmax)
+                            ,y = c(oT$rect$ymin
+                                   ,(Temp$early-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
+                                   ,(Temp$late-oT$Tmin)/(oT$Tmax-oT$Tmin)*oT$rect$h*Ylim[2]+oT$rect$ymin
+                                   ,oT$rect$ymin))
+  
+  # Mixed Layer Depth #####
+  
+  oM$wave$df <- 
+    {waveXt<-c(seq(0,2*pi,0.001),2*pi)
+    waveXb<-c(seq(2*pi,0,-0.001),0)
+    waveYt<-sin(waveXt)
+    waveYb<-sin(waveXb)+oM$wave$t
+    waveX<-((c(waveXt,waveXb)/(2*pi)-0.5)*oM$wave$w+oM$wave$x0)      *Xlim[2]
+    waveY<-(((c(waveYt,waveYb)+1)/(2+oM$wave$t)-0.5)*oM$wave$h+oM$wave$y0)*Ylim[2]
+    wave<-data.frame(x=waveX, y=waveY)
+    wave}
+  
+  oM<-c(oM,{
+    x0<-(oM$wave$w-oM$rect$w)/2 /oM$wave$w  # proportion along wave
+    xE<-(x0+oM$rect$w/oM$wave$w)
+    polyX<-c(seq(x0*2*pi,xE*2*pi,0.001),xE*2*pi)
+    polyY<-sin(polyX)
+    polyX<-(polyX/(2*pi)-0.5)*oM$wave$w+oM$wave$x0
+    polyY<-((polyY+1)/(2+oM$wave$t)-0.5)*oM$wave$h+oM$wave$y0
+    rectYtop<-polyY[length(polyY)]
+    rectYbottom<-polyY[length(polyY)]-oM$rect$h
+    pX1<-polyX[1]
+    pXe<-polyX[length(polyX)]
+    pY1<-rectYtop-(MLD$early-oM$MLmin)/(oM$MLmax-oM$MLmin)*oM$rect$h
+    pYe<-rectYtop-(MLD$late-oM$MLmin)/(oM$MLmax-oM$MLmin)*oM$rect$h
+    
+    boxX<-c(polyX,pXe,pX1) # polyX is a long vector
+    boxY<-c(polyY,rectYbottom,rectYbottom)
+    
+    list(box = data.frame(x=boxX*Xlim[2],y=boxY*Ylim[2])
+         ,boxXcentre = (pXe+pX1)/2*Xlim[2]
+         ,polybase = data.frame(x=c(polyX,pX1),y=c(polyY,rectYtop))
+         ,poly = data.frame(x=c(pX1,polyX,pXe)*Xlim[2],y=c(pY1,polyY,pYe)*Ylim[2])
+         ,bottom=list(x=c(pX1,pXe)*Xlim[2],y=c(rectYbottom,rectYbottom)*Ylim[2])
+         ,ticksX = pX1*Xlim[2]- c(0,2)
+         ,ticksY = (rectYtop-((seq(oM$MLmin,oM$MLmax,length.out=(oM$Ints+1))-oM$MLmin)/(oM$MLmax-oM$MLmin)*oM$rect$h))*Ylim[2]
+    )
+  })
+
+    # Sea ice concentration and extent (plotted over depth) ####
+  sXrange<- if(is.na(oS$unit)) (log10(SeaIce$MEASOarea)-oS$Xstart) else (SeaIce$MEASOarea-oS$Xstart)/oS$unit
+  
+  oS$box<-list( xmin = (oS$rect$xmax-sXrange*oS$XpropPerUnit)*Xlim[2]
+                ,xmax = oS$rect$xmax*Xlim[2]
+                ,ymin = oS$rect$ymin*Yrange+Ylim[1]
+                ,ymax = (oS$rect$ymin+oS$rect$h)*Yrange+Ylim[1])
+  
+  s95<-list(early = (SeaIce$conc95$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc95$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+  s75<-list(early = (SeaIce$conc75$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc75$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+  s25<-list(early = (SeaIce$conc25$early/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit
+            ,late = (SeaIce$conc25$late/100*SeaIce$MEASOarea-oS$Xstart)/oS$unit)
+  oS$box<-c(oS$box,list(
+    poly95 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                            ,oS$box$xmin+s95$early*oS$XpropPerUnit*Xlim[2]
+                            ,oS$box$xmin+s95$late*oS$XpropPerUnit*Xlim[2])
+                        ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+    ,poly75 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                             ,oS$box$xmin+s75$early*oS$XpropPerUnit*Xlim[2]
+                             ,oS$box$xmin+s75$late*oS$XpropPerUnit*Xlim[2])
+                         ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+    ,poly25 = data.frame(x=c(oS$box$xmin,oS$box$xmin
+                             ,oS$box$xmin+s25$early*oS$XpropPerUnit*Xlim[2]
+                             ,oS$box$xmin+s25$late*oS$XpropPerUnit*Xlim[2])
+                         ,y=c(oS$box$ymin,oS$box$ymax,oS$box$ymax,oS$box$ymin))
+  ))
+  
+  # Plot ####
+  Ylim[1]<-Ylim[1]-BottomTickLabelOffset # correct Ylim after all the calcs
+  Ylim[2]<-Ylim[2]+TopTickLabelOffset
+  Xlim[1]<-Xlim[1]-LeftOffset
+  
+  p<-ggplot() + coord_fixed(ratio=1) + xlim(Xlim) + ylim(Ylim) + xlab("")+ylab("")+
+    theme(
+      axis.text.x = element_blank()
+      ,axis.text.y = element_blank()
+      ,axis.ticks = element_blank()
+      ,panel.grid.major = element_blank()
+      , panel.grid.minor = element_blank()
+      ,panel.background = element_rect(fill='transparent')
+      ,plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+    )
+  
+  AxisTickLabelSize<-4
+  AxisLabelSize<-5
+  # depth ####
+  p<-p+geom_rect(aes(xmin=oD$box$xmin,xmax=oD$box$xmax,ymin=oD$box$ymin,ymax=oD$box$ymax),fill=Colours$depth$bg,linetype=1,colour="black",show.legend=FALSE)
+  p<-p+geom_polygon(data=oD$box$poly,aes(x=x,y=y),fill=Colours$depth$main, show.legend=FALSE)
+  for(i in c(1:length(oD$box$ticksX))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oD$box$ticksX[i],oD$box$ticksX[i]),y=c(oD$box$ymin-2,oD$box$ymin)),linetype=1,colour="black")
+  for(i in c(1:length(oD$box$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oD$box$xmin-2,oD$box$xmin), y=c(oD$box$ticksY[i],oD$box$ticksY[i])),linetype=1,colour="black")
+  p<-p+ annotate(geom="text", x= oD$box$xmin-3, y=oD$box$ymin , label="-4000",
+                 color="black", hjust=1,vjust=0.5,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oD$box$xmin-3, y=oD$box$ymax , label="0",
+                 color="black", hjust=1,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oD$box$xmin-23, y=(oD$box$ymin+oD$box$ymax)/2+0.5 , label="Seafloor",
+                 color="black", hjust=0,vjust=0,size=AxisLabelSize,angle=00)
+  p<-p+ annotate(geom="text", x= oD$box$xmin-23, y=(oD$box$ymin+oD$box$ymax)/2-0.5 , label="Depth (m)",
+                 color="black", hjust=0,vjust=1,size=AxisLabelSize,angle=0)
+  
+  p<-p+ annotate(geom="text", x= oD$box$xmin, y=oD$box$ymin-3 , label="0",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oD$box$xmax, y=oD$box$ymin-3 , label="10",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= (oD$box$xmin+oD$box$xmax)/2, y=Ylim[1] , label="Area (million square km)",
+                 color="black", hjust=0.5,vjust=0,size=AxisLabelSize)
+  
+  
+  # light ####
+  
+  #p<-p+ geom_circle(aes(x0 = oL$sun$x, y0 = oL$sun$y, r = oL$sun$r), fill = Colours$light$main, show.legend=FALSE)
+  p<-p+geom_polygon(data=oL$sun$poly,aes(x=x,y=y),fill=Colours$light$main,linetype=1,colour="black", show.legend=FALSE)
+  #p<-p+geom_rect(aes(xmin=oL$rect$xmin,xmax=oL$rect$xmax,ymin=oL$rect$ymax,ymax=oL$rect$ymaxBG),fill=Colours$light$main,show.legend=FALSE)
+  p<-p+geom_rect(aes(xmin=oL$rect$xmin,xmax=oL$rect$xmax,ymin=oL$rect$ymin,ymax=oL$rect$ymax),fill=Colours$light$bg,linetype=1,colour="black",show.legend=FALSE)
+  p<-p+geom_polygon(data=oL$poly,aes(x=x,y=y),fill=Colours$light$main, show.legend=FALSE)
+  for(i in c(1:length(oL$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oL$ticksX,y=c(oL$ticksY[i],oL$ticksY[i])),linetype=1,colour="black")
+  p<-p+ annotate(geom="text", x= oL$rect$xmin-10, y=0 , label="Watts.m-2.d-1",
+                 color="black", hjust=0,vjust=0,size=AxisLabelSize,angle=90)
+  p<-p+ annotate(geom="text", x= oL$rect$xmin-3, y=oL$rect$ymax , label=oL$Lmin,
+                 color="black", hjust=1,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oL$rect$xmin-3, y=oL$rect$ymin , label=oL$Lmax,
+                 color="black", hjust=1,vjust=0,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= (oL$rect$xmin+oL$rect$xmax)/2, y=Ylim[1] , label="PAR",
+                 color="black", hjust=0.5,vjust=0,size=AxisLabelSize)
+
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oL$rect$xmin,oL$rect$xmin),y=c(oL$rect$ymin,oL$rect$ymin-2)),linetype=1,colour="black")
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oL$rect$xmax,oL$rect$xmax),y=c(oL$rect$ymin,oL$rect$ymin-2)),linetype=1,colour="black")
+  p<-p+ annotate(geom="text", x= oL$rect$xmin,y=oL$rect$ymin-3, label="R",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oL$rect$xmax,y=oL$rect$ymin-3, label="E",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  
+  # thermometer ####
+  p<-p+ geom_circle(aes(x0 = oT$bulb$x, y0 = oT$bulb$y, r = oT$bulb$r), fill = Colours$temp$main, show.legend=FALSE)
+  p<-p+geom_rect(aes(xmin=oT$rect$xmin,xmax=oT$rect$xmax,ymin=oT$rect$ymin,ymax=oT$rect$ymax),fill=Colours$temp$bg,linetype=1,colour="black",show.legend=FALSE)
+  p<-p+geom_polygon(data=oT$tempShape,aes(x=x,y=y),fill=Colours$temp$main, show.legend=FALSE)
+  for(i in c(1:length(oT$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oT$ticksX,y=c(oT$ticksY[i],oT$ticksY[i])),linetype=1,colour="black")
+
+  p<-p+ annotate(geom="text", x= oT$rect$xmin-8, y=0 , label="      degrees C",
+                 color="black", hjust=0,vjust=0,size=AxisLabelSize,angle=90)
+  p<-p+ annotate(geom="text", x= oT$rect$xmin-3, y=oT$rect$ymax , label=oT$Tmax,
+                 color="black", hjust=1,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oT$rect$xmin-3, y=oT$rect$ymin , label=oT$Tmin,
+                 color="black", hjust=1,vjust=0,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= (oT$rect$xmin+oT$rect$xmax)/2, y=Ylim[1] , label="Temperature   ",
+                 color="black", hjust=0.5,vjust=0,size=AxisLabelSize)
+  
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oT$rect$xmin,oT$rect$xmin),y=c(oT$rect$ymax,oT$rect$ymax+2)),linetype=1,colour="black")
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oT$rect$xmax,oT$rect$xmax),y=c(oT$rect$ymax,oT$rect$ymax+2)),linetype=1,colour="black")
+  
+  p<-p+ annotate(geom="text", x= oT$rect$xmin,y=oT$rect$ymax+3, label="R",
+                 color="black", hjust=0.5,vjust=0,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oT$rect$xmax,y=oT$rect$ymax+3, label="E",
+                 color="black", hjust=0.5,vjust=0,size=AxisTickLabelSize)
+  
+  # MLD ####
+  p<-p+geom_polygon(data=oM$wave$df,aes(x=x,y=y),fill=Colours$MLD$main,linetype=1,colour="black", show.legend=FALSE)
+  p<-p+geom_polygon(data=oM$box,aes(x=x,y=y),fill=Colours$MLD$bg,linetype=1,colour="black", show.legend=FALSE)
+  p<-p+geom_polygon(data=oM$poly,aes(x=x,y=y),fill=Colours$MLD$main, show.legend=FALSE)
+  p<-p+geom_polygon(data=oM$polybase,aes(x=x,y=y),fill=Colours$MLD$main,linetype=1,colour="black", show.legend=FALSE)
+  
+  for(i in c(1:length(oM$ticksY))) p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=oM$ticksX,y=c(oM$ticksY[i],oM$ticksY[i])),linetype=1,colour="black")
+  p<-p+ annotate(geom="text", x= oM$ticksX[2]-6, y=0 , label="Depth (m)",
+                 color="black", hjust=0,vjust=0,size=AxisLabelSize,angle=90)
+  p<-p+ annotate(geom="text", x= oM$ticksX[2]-0.5, y=oM$ticksY[1] , label=oM$MLmin,
+                 color="black", hjust=1,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oM$ticksX[2]-0.5, y=oM$ticksY[oM$Ints+1] , label=oM$MLmax,
+                 color="black", hjust=1,vjust=0,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oM$boxXcentre, y=Ylim[1] , label=" Mixed Layer",
+                 color="black", hjust=0.5,vjust=0,size=AxisLabelSize)
+
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oM$bottom$x[1],oM$bottom$x[1]),y=c(oM$bottom$y[1],oM$bottom$y[1]-2)),linetype=1,colour="black")
+  p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oM$bottom$x[2],oM$bottom$x[2]),y=c(oM$bottom$y[1],oM$bottom$y[1]-2)),linetype=1,colour="black")
+  
+  p<-p+ annotate(geom="text", x= oM$bottom$x[1],y=oM$bottom$y[1]-3, label="R",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  p<-p+ annotate(geom="text", x= oM$bottom$x[2],y=oM$bottom$y[2]-3, label="E",
+                 color="black", hjust=0.5,vjust=1,size=AxisTickLabelSize)
+  
+  
+  # Sea ice ####
+    if(sum(oS$box$poly95$x>oS$box$xmin)>0){
+    # Sea ice (data are for open water)  
+    # p<-p+geom_rect(aes(xmin=oS$box$xmin,xmax=oS$box$xmax,ymin=oS$box$ymin,ymax=oS$box$ymax),fill=Colours$ice$bg,linetype=1,colour="black",show.legend=FALSE)
+    p<-p+geom_polygon(data=oS$box$poly95,aes(x=x,y=y),fill=Colours$ice$c95,linetype=1,colour="black", show.legend=FALSE)
+    p<-p+geom_polygon(data=oS$box$poly75,aes(x=x,y=y),fill=Colours$ice$c75, show.legend=FALSE)
+    p<-p+geom_polygon(data=oS$box$poly25,aes(x=x,y=y),fill=Colours$ice$c25, show.legend=FALSE)
+    # y ticks
+    p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oS$box$xmin-2,oS$box$xmin), y=c(oS$box$ymin,oS$box$ymin)),linetype=1,colour="black")
+    p<-p+geom_line(aes(x=x,y=y),data=data.frame(x=c(oS$box$xmin-2,oS$box$xmin), y=c(oS$box$ymax,oS$box$ymax)),linetype=1,colour="black")
+    p<-p+ annotate(geom="text", x= oS$box$xmin-3,y=oS$box$ymin, label="E",
+                   color="black", hjust=1,vjust=0,size=AxisTickLabelSize)
+    p<-p+ annotate(geom="text", x= oS$box$xmin-3,y=oS$box$ymax, label="R",
+                   color="black", hjust=1,vjust=0.5,size=AxisTickLabelSize)
+    p<-p+ annotate(geom="text", x= oS$box$xmin-20, y=(oS$box$ymin+oS$box$ymax)/2+1 , label="Spring",
+                   color="black", hjust=0,vjust=0,size=AxisLabelSize,angle=0)
+    p<-p+ annotate(geom="text", x= oS$box$xmin-20, y=(oS$box$ymin+oS$box$ymax)/2 , label="Sea Ice",
+                   color="black", hjust=0,vjust=1,size=AxisLabelSize,angle=0)
+    
+    
+  }
+  
+  
+  return(p)
+}
+
+p<-plotLegend(MEASOareaSummary[[1]],oD,oL,oT,oM,oS,Xlim,Ylim,Colours)  
+p
 
 # 4.0 Test Routine ####
 
@@ -461,8 +788,6 @@ for(i in 10:12){
 p<-plotMEASOareaSummary(MEASOareaSummary[[i]],oD,oL,oT,oM,oS,Xlim,Ylim,doTicks,Colours,ContShelf=TRUE)
 print(p)
 }
-
-ggsave("tmp.png",plot=p)
 
 
 # loading the required libraries 
@@ -508,6 +833,14 @@ for(i in seq(1,15,1)){
                 ,right  = pLoc[[i]][1] 
                 ,top    = pLoc[[i]][2]+pSize[2])
        }
+
+#p<-plotLegend(MEASOareaSummary[[1]],oD,oL,oT,oM,oS,Xlim,Ylim,Colours)  
+img <-  readPNG('MEASOlegend.png')
+g<- g + annotation_raster( img
+                      ,xmin   = 0.93-pSize[1]*2
+                      ,xmax  = 0.93 
+                      ,ymin = 0.005 
+                      ,ymax    = 0.005+pSize[2])
 g
 
-# printing graph with image  
+

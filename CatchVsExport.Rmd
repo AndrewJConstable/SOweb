@@ -1,0 +1,130 @@
+---
+title: "CatchVsExport"
+output: html_document
+date: "2024-05-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(ggpubr)
+library(deSolve)
+
+source("CCAMLR Decision Rules - Functions.R")
+source("CCAMLR Decision Rules - Input Data.R")
+
+```
+
+Krill are considered to be important mediators of the carbon cycle in the Southern Ocean, including through contributing to carbon sequestration through the production and sinking of faecal pellets and exuviae.  Baleen whales are also important in the carbon cycle because they facilitate production through the recycling of iron by consuming krill and defaecating iron concentrate. Removing krill through fishing results in lost production by whales, potentially reducing iron recycling.
+
+Here I use Southern Ocean Ecopath results to assess the potential loss of carbon export by krill as a result of fishing.
+
+The following steps are required:
+i) isolate the pathway of phytoplankton to krill to whales using the diet matrix
+ii) determine the iron pool for phytoplankton using iron to biomass ratios
+iii) approximate iron contribution to that pool from whale faeces from its consumption of krill, waste rate, and the proportion of waste that is iron.
+iv) the change in the iron pool
+parameters 
+
+```{r inputs, echo=FALSE, eval=TRUE}
+
+```
+
+
+```{r libs, echo=FALSE, eval=TRUE}
+
+fnCalcX<- function(G                 # catch as proportion of B0K
+                   ,QBK,PBK,EEK  # krill ecopath
+                   ,dFW
+                   ,Aw,WWFeW # whales ecopath, iron conc from wet weight faeces
+                   ,FeWWp            # phytoplankton conversion of Fe to Wet weight
+                   ,W      # adj to B0 from whales
+                   ){
+    return( W*(QBK-dFW*(1-Aw)*WWFeW*FeWWp*(PBK*EEK+G))/(QBK-dFW*(1-Aw)*WWFeW*FeWWp*(PBK*EEK))  ) 
+  } # end calcX
+
+fnCalcW<- function(QBK,PBK,EEK  # krill ecopath
+                   ,dFW,dR  # 
+                   ,Aw,WWFeW # whales ecopath, iron conc from wet weight faeces
+                   ,FeWWp            # phytoplankton conversion of Fe to Wet weight
+                   ){
+    return( (QBK-dFW*(1-Aw)*WWFeW*FeWWp*PBK*EEK)/(QBK-dR*(1-Aw)*WWFeW*FeWWp*PBK*EEK)  ) 
+  } # end calcX
+
+findGgivenX<-function(G,X,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp){
+             return( (fnCalcX(G,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp)-X)^2 )}
+
+```
+
+
+```{r work, echo=FALSE, eval=TRUE}
+
+# check productivity from yield model WG-FSA 2022
+
+K=0.48
+Linf=60 # mm
+A=4E-6 # g
+B = 3.204
+M=0.8
+
+KrillProd<-sum(as.vector(sapply(c(1:20),function(a,M,Linf,K,A,B){exp(-M*a)*
+    (A*(Linf*(1-exp(-K*(a+1))))^B-A*(Linf*(1-exp(-K*a)))^B)
+    },M,Linf,K,A,B)))
+
+KrillBiomass<-sum(as.vector(sapply(c(1:20),function(a,M,Linf,K,A,B){exp(-M*a)*A*(Linf*(1-exp(-K*a)))^B},M,Linf,K,A,B)))
+KrillProd/KrillBiomass
+########## end check
+
+PB<-c(1,2,3) # Productivity
+G<-seq(0,0.5,0.01)
+
+xB0<-seq(0.5,1.0,0.1)
+
+dFW<-c(0.1,0.4)
+
+# calculation as per mass B0K
+
+r<-do.call(rbind,lapply(PB,function(pb,G,PT,Aw,dFW,WWFeW=8.569E-5,FeWWp=1/2.792E-6){ #429799.4){
+          
+          qbk<-PT$eQB-PT$ePB+pb
+
+         r1<-do.call(rbind,lapply(dFW,fnCalcW,qbk,pb,PT$eEE  # krill ecopath
+                   ,dFW[1]  # 
+                   ,Aw,WWFeW # whales ecopath, iron conc from wet weight faeces
+                   ,FeWWp            # phytoplankton conversion of Fe to Wet weight
+                   ))
+
+          
+          
+          r1<-do.call(rbind,lapply(G,function(G,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp,W){
+            x<-fnCalcX(G,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp,W)
+              return(data.frame(dFW=dFW,PB=PBK,G = G,X = x))
+             },qbk,pb,PT$eEE,dFW,Aw,WWFeW,FeWWp,W))
+
+        return(r1)
+        },G,Krill,Predators$Whale$A,dFW))
+r<-r[order(r$PB,r$G),]
+r$PB<-factor(r$PB)
+p<-ggplot(r)+geom_line(aes(x=G,y=X,colour=PB))
+p
+```
+
+```{r old, echo=FALSE, eval=FALSE}
+res<-do.call(rbind,lapply(PB,function(pb,xB0,PT,Aw,dFW=0.8,WWFeW=5.1E-4,FeWWp=429799.4){
+          
+          qbk<-PT$eQB-PT$ePB+pb
+
+          r1<-do.call(rbind,lapply(xB0,function(x,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp){
+            
+            g<-optimise(findGgivenX,c(0,1)
+                  ,x,QBK,PBK,EEK,dFW,Aw,WWFeW,FeWWp)$minimum
+              return(data.frame(xB0 = x,PB=pb,g = g))
+             },qbk,pb,PT$eEE,dFW,Aw,WWFeW,FeWWp))
+        return(r1)  
+        },xB0,Krill,Predators$Whale$A))
+res
+
+```
+
+
+

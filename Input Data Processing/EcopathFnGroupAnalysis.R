@@ -188,7 +188,10 @@ Brel$Taxa<-factor(GroupNames[Brel$Group],levels=GroupNames)
 Brel$plot0<-Brel[,"Blog10"]
 Brel$plot0[Brel$plot0>0.01 | Brel$plot0<(-0.01)]<-NA
 
-pData<-Brel[Brel$Group<8,] # leave out detritus
+pData<-Brel[Brel$Group!=8 & Brel$Group!=2,] # leave out detritus and bacteria
+
+# bar plots ####
+# correction to make bar work
 yAdj<- (-3)
 yAdjMin<-0
 yAdjMax<-4.5
@@ -206,6 +209,76 @@ p<-p+theme(axis.title.x=element_blank()
 p<-p+scale_y_continuous(limits=c(yAdjMin,yAdjMax),breaks=seq(yAdjMin,(yAdjMax),yInt), labels=seq(yMin,yMax,yInt))
 p<-p+facet_grid(~Model)
 p
+
+
+
+
+
+
+# network layout plots ####
+
+net_pos<-function(cntr=c(5,8),u=1){  # centre point and units to multiply grid square
+    p1<-c(1,(cntr[1,1]-0.04)*u,(cntr[1,2]-0.25)*u) # protists (not bacteria)
+    p3<-c(3,(cntr[1,1]-0.04)*u,(cntr[1,2]+0.25)*u) # zooplankton
+    p4<-c(4,(cntr[1,1]+0.04)*u,(cntr[1,2]+0.25)*u) # mesopelagic fish and squid
+    p5<-c(5,(cntr[1,1]+0)*u,(cntr[1,2]+0.5)*u)   # BAMM
+    p6<-c(6,(cntr[1,1]+0)*u,(cntr[1,2]-0.5)*u)   # Benthos
+    p7<-c(7,(cntr[1,1]+0.04)*u,(cntr[1,2]-0.25)*u) # demersal fish and squid
+    dm<-rbind(p1,p3,p4,p5,p6,p7)
+    df<-as.data.frame(dm)
+    names(df)<-c("Group","x","y")
+    return(df)    
+}
+NetCentres<- data.frame(Model = c("EPA.APN","AOS","EPA.APS","CIA","WPA","CIS","CIN")
+                       ,"x" = c(-0.1,0.1,-0.1,0.1,-0.1,0.1,0.1)
+                       ,"y" = c(9,9,6.5,6.5,4,4,1.5))
+
+Multiplier<-1
+
+netLayout<-merge(do.call(rbind,lapply(unique(pData$Model),function(m,nc,u){
+  np<-net_pos(nc[nc$Model==m,c("x","y")],Multiplier)
+  return(data.frame(Model=rep(m,nrow(np)),np))
+  },NetCentres,Multiplier)),pData,by=c("Model","Group"))
+
+netLayout
+netLayout$Broot<-netLayout$Biomass^0.5
+
+# set colours
+
+# do bubble plot
+p<-ggplot(netLayout,aes(x=x,y=y,size=Biomass, fill=Taxa))  # 
+p<-p+ geom_point(alpha=1,shape=21, color="black")  # alpha is opacity
+p<-p+ scale_size_area(name="Biomass relative to protists",guide="legend" #,range  = c(0, 6.5)
+                            ,max_size=15, breaks = c(0.1, 0.5, 1, 2, 6))
+p<-p+  scale_fill_viridis_d(begin=0.4, end = 0.9, direction=-1)
+p<-p+theme( axis.title.x=element_blank()
+           ,axis.text.x=element_blank()
+           ,axis.ticks.x=element_blank()
+           ,axis.title.y=element_blank()
+           ,axis.text.y=element_blank()
+           ,axis.ticks.y=element_blank()
+           , panel.background = element_blank()
+) # end theme
+
+p<-p+ annotate(geom="text", x=-0.15, y=10, label="East Pacific Antarctic - WAP-north",
+               color="black", hjust=0)
+p<-p+ annotate(geom="text", x= 0.15, y=10, label="Atlantic Subantarctic",
+               color="black", hjust=1)
+p<-p+ annotate(geom="text", x=-0.15, y= 7.5, label="East Pacific Antarctic - WAP-south",
+               color="black", hjust=0)
+p<-p+ annotate(geom="text", x= 0.15, y= 7.5, label="Central Indian Antarctic",
+               color="black", hjust=1)
+p<-p+ annotate(geom="text", x=-0.15, y= 5, label="West Pacific Antarctic",
+               color="black", hjust=0)
+p<-p+ annotate(geom="text", x= 0.15, y= 5, label="Central Indian Subantarctic",
+               color="black", hjust=1)
+p<-p+ annotate(geom="text", x= 0.15, y= 2.5, label="Central Indian Northern",
+               color="black", hjust=1)
+p
+
+
+# add headings
+
 
 
 
@@ -245,8 +318,7 @@ p<-p+facet_grid(~Model)
 p
 
 
-#########################################
-# nMDS of food web models
+# 4. nMDS of food web models ####
 library(vegan)
 library(ggrepel)
 library(grid)
@@ -263,12 +335,62 @@ snmds<-as.data.frame(scores(rnmds)$sites)
 snmds<-cbind(Model,snmds)
 
 
-p <- ggplot(snmds, aes(x = NMDS1, y = NMDS2, label = Model)) 
-p <- p+  geom_point(size = 5, aes(colour = Model))
-p <- p+ geom_text_repel()
-p <- p+ geom_text(x=0.5, y=0.4, label="Stress < 0.001")
-p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bold")
-        , axis.text.x = element_text(colour = "black", face = "bold", size = 12)
+MEASOcolRGBA<-matrix(c(2,    226, 20, 20, 1
+                       ,3,    242,113,113, 1
+                       ,1,    249,188,188, 1
+                       ,5,    236,133, 69, 1
+                       ,6,    243,177,136, 1                 
+                       ,4,    249,215,194, 1
+                       ,8,    135,141,199, 1                   
+                       ,9,    176,180,217, 1
+                       ,7,    209,211,233, 1
+                       ,11,    75,125,126, 1
+                       ,12,    95,158,160, 1
+                       ,10,   160,197,199, 1
+                       ,14,   132, 57,116, 1
+                       ,15,   198,122,181, 1
+                       ,13,   225,184,216, 1),ncol=5,byrow=TRUE)
+dimnames(MEASOcolRGBA)[[2]]<-c("Area","R","G","B", "Alpha")
+mc<-MEASOcolRGBA[order(MEASOcolRGBA[,"Area"]),]
+MEASOcols<-rgb(red=mc[,"R"],green=mc[,"G"],blue=mc[,"B"],names=MEASOnames,maxColorValue = 255)
+
+pointLabelSize<-10
+PointRadX<-0.1
+
+snmds_labs<-snmds
+snmds_labs[snmds_labs$Model=="WPA",2]<-snmds_labs[snmds_labs$Model=="WPA",2]+PointRadX
+snmds_labs[snmds_labs$Model=="AOS",2]<-snmds_labs[snmds_labs$Model=="AOS",2]+PointRadX
+snmds_labs[snmds_labs$Model=="EPA.APN",2]<-snmds_labs[snmds_labs$Model=="EPA.APN",2]-PointRadX
+snmds_labs[snmds_labs$Model=="EPA.APS",2]<-snmds_labs[snmds_labs$Model=="EPA.APS",2]+PointRadX
+snmds_labs[snmds_labs$Model=="CIS",2]<-snmds_labs[snmds_labs$Model=="CIS",2]-PointRadX
+snmds_labs[snmds_labs$Model=="CIN",2]<-snmds_labs[snmds_labs$Model=="CIN",2]+PointRadX
+snmds_labs[snmds_labs$Model=="CIA",2]<-snmds_labs[snmds_labs$Model=="CIA",2]+PointRadX
+
+pointCols<-as.vector(c(MEASOcols[14],MEASOcols[11],MEASOcols[11],MEASOcols[2],MEASOcols[5],MEASOcols[5],MEASOcols[5]))
+names(pointCols)<-Model
+
+p <- ggplot(snmds, aes(x = NMDS1, y = NMDS2, label = Model,colour=Model)) +xlim(-1,1)+ylim(-0.4,0.45)
+p <- p+  geom_point(size = 20)
+p <- p+ scale_fill_manual(values=pointCols
+                          ,aesthetics=c("colour","fill"))
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="WPA",2], y=snmds_labs[snmds_labs$Model=="WPA",3] , label="WPA",
+               color="black", hjust=0,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="AOS",2], y=snmds_labs[snmds_labs$Model=="AOS",3] , label="AOS",
+               color="black", hjust=0,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="EPA.APN",2], y=snmds_labs[snmds_labs$Model=="EPA.APN",3] , label="EPA.APN",
+               color="black", hjust=1,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="EPA.APS",2], y=snmds_labs[snmds_labs$Model=="EPA.APS",3] , label="EPA.APS",
+               color="black", hjust=0,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="CIS",2], y=snmds_labs[snmds_labs$Model=="CIS",3] , label="CIS",
+               color="black", hjust=1,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="CIN",2], y=snmds_labs[snmds_labs$Model=="CIN",3] , label="CIN",
+               color="black", hjust=0,vjust=0.5,size=pointLabelSize)
+p<-p+ annotate(geom="text", x= snmds_labs[snmds_labs$Model=="CIA",2], y=snmds_labs[snmds_labs$Model=="CIA",3] , label="CIA",
+               color="black", hjust=0,vjust=0.5,size=pointLabelSize)
+
+#p <- p+ geom_text(x=0.5, y=0.4, label="Stress < 0.001")
+p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12)
+        , axis.text.x = element_text(colour = "black", size = 12)
         ,legend.position="none"
 #       ,legend.text = element_text(size = 12, face ="bold", colour ="black") 
 #       ,legend.position = "right"
@@ -278,9 +400,9 @@ p <- p+ theme(axis.text.y = element_text(colour = "black", size = 12, face = "bo
         , panel.background = element_blank(), panel.border = element_rect(colour = "black", fill = NA, size = 1.2)
       #  ,legend.key=element_blank()
         )# end theme
-p <- p+ labs(x = "NMDS1", y = "NMDS2")
+ p <- p+ labs(x = "", y = "")
 
 p
 
-ggsave("NMDS.svg")
+
 
