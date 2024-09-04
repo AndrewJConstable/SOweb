@@ -9,7 +9,7 @@ ProjYears<-list(YearsTotal  = 70
 # 1.0 Environment ####
 
 Env<-list( name = "Env"
-           ,plot = list(col = "#993300")
+           ,plot = list(col = "#993300",linetype="solid")
            ,Period       = list(P1 = list( years = 10
                                            ,doFn = FALSE
                                            ,fn = NULL
@@ -33,7 +33,7 @@ Env<-list( name = "Env"
 # 2.0 Krill ####
 
 Krill<-list( name="Krill"
-             ,plot = list(col = "#FF9900")
+             ,plot = list(col = "#FF9900",linetype="solid")
              ,par = list(K = Env$Period$P1$data
                        , r=3.1    # from Hill et al 2021 ; used 2 previously
                        , phi=1.0 # 0.1
@@ -56,7 +56,7 @@ Krill<-list( name="Krill"
 # 3.0 Predators ####
 Predators<-list(
   Whale = list( name="Whale"
-            ,plot = list(col = "#0033FF")
+            ,plot = list(col = "#0033FF",linetype="solid")
             ,QBhat=NA  # calculate from prey maximum production
             ,useHolling = TRUE
             ,Holling = list(p50 = 0.3   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
@@ -72,7 +72,7 @@ Predators<-list(
              ) # end whale 
 
  ,Penguin = list(name="Penguin"
-              ,plot = list(col = "#336633")
+              ,plot = list(col = "#336633",linetype="dashed")
               ,QBhat=NA  # calculate from prey maximum production
              ,useHolling = TRUE
              ,Holling = list(p50 = 0.4   # 0.3   prey at which 50% consumption without predator competition, relative to prey population size at initial PBmax
@@ -91,7 +91,7 @@ Predators<-list(
 # 4.0 Fishery ####
 
 Fishery <- list( name="Fishery"
-                 ,plot = list(col = "#CC0033")
+                 ,plot = list(col = "#CC0033",linetype="solid")
                 ,K_target_0        = 0.75
                 ,K_critical_0      = 0.2
                 ,Time_for_recovery = 25

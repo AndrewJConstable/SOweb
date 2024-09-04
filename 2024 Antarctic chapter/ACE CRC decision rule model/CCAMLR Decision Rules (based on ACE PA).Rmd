@@ -99,6 +99,8 @@ Figure 9.7 illustrates a number of issues that are problematic in the current as
 
 plotColours<-as.vector(c(Env$plot$col,Krill$plot$col,sapply(Predators,function(p){p$plot$col}),Fishery$plot$col))
 names(plotColours)<-c(Env$name,Krill$name,sapply(Predators,function(p){p$name}),Fishery$name)
+plotLineType<-as.vector(c(Env$plot$linetype,Krill$plot$linetype,sapply(Predators,function(p){p$plot$linetype}),Fishery$plot$linetype))
+names(plotLineType)<-c(Env$name,Krill$name,sapply(Predators,function(p){p$name}),Fishery$name)
 
 EnvTimeSeries<-do.call(c,lapply(Env$Period,function(p){if(p$doFn) do.call(p$fn,list(p$years,p$data)) else rep(p$data,p$years)}))
 
@@ -125,7 +127,7 @@ HollingExamples<-list( Whale   = Predators$Whale$Holling
 HollingExamples$Whale$p50<-HollingExamples$Whale$p50*Krill$B0  # correct scaling of p50 to new B0
 HollingExamples$Penguin$p50<-HollingExamples$Penguin$p50*Krill$B0
 
-p1<-fnPlotPellaTomlinson(Krill,plotColours,HollingExamples,Ylim=c(0,60))
+p1<-fnPlotPellaTomlinson(Krill,plotColours,plotLineType,HollingExamples,Ylim=c(0,80))
 p1
 print(paste0("Krill M             = ",Krill$par$M))
 print(paste0("Krill max Mortality by mass = ",Krill$par$Mmax))

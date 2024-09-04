@@ -1,0 +1,189 @@
+FnGroup,PlotGroup,Name,WPA,EPA.APS,EPA.APN,AOS,CIA,CIS,CIN
+,0,Primary Producers Total,1.58683056,2.543707598,290.4184,6.3306492,10,33.7,8.70903
+1,1,Flagellates,0.165583199,NA,NA,NA,NA,NA,NA
+1,1,Heterotrophic_microplankton,NA,NA,NA,0.288595994,NA,NA,NA
+1,1,Ice algae,NA,NA,0.010559593,NA,NA,NA,NA
+1,1,Ice Biota,NA,0.001179301,NA,NA,NA,NA,NA
+1,1,Ice_algae,0.148629788,NA,NA,NA,NA,NA,NA
+1,1,Ice_metazoa,0.002059928,NA,NA,NA,NA,NA,NA
+1,1,Ice_protozoa,0.000784856,NA,NA,NA,NA,NA,NA
+1,1,Island-associated Blooms,NA,NA,NA,NA,NA,NA,0.000462738
+1,1,Large phytoplankton,NA,NA,0.472146393,NA,NA,NA,NA
+1,1,Large Phytoplankton,NA,0.436570501,NA,NA,NA,NA,NA
+1,1,Macroalgae,NA,NA,NA,NA,NA,0.020771513,NA
+1,1,Macrophytes,NA,NA,NA,NA,NA,NA,0.022390553
+1,1,Open Ocean Large phytoplankton,NA,NA,NA,NA,NA,NA,0.195199695
+1,1,Open Ocean Small Phytoplankton,NA,NA,NA,NA,NA,NA,0.781947014
+1,1,Phytoplankton,0.682942229,NA,NA,0.711404006,1,0.979228487,NA
+1,1,Small phytoplankton,NA,NA,0.517294014,NA,NA,NA,NA
+1,1,Small Phytoplankton,NA,0.562250198,NA,NA,NA,NA,NA
+2,3,All other Zooplankton,NA,NA,NA,NA,NA,NA,0.80376345
+2,3,Antarctic krill,NA,NA,NA,NA,0.4,NA,NA
+2,3,Antarctic krill adults,NA,0.684782953,NA,NA,NA,NA,NA
+2,3,Antarctic krill larvae,NA,0.118014146,NA,NA,NA,NA,NA
+2,3,Carnivorous_macroplankton,NA,NA,NA,0.119802588,NA,NA,NA
+2,3,Ctenophores,NA,0.009434164,NA,NA,NA,NA,NA
+2,3,Herbivorous_mesozooplankton,NA,NA,NA,0.093243514,NA,NA,NA
+2,3,Herbivorous/detritivorous_copepods,NA,NA,NA,0.372974055,NA,NA,NA
+2,3,Krill,NA,NA,NA,0.403045046,NA,0.415430267,NA
+2,3,Krill_crystal,0.026097099,NA,NA,NA,NA,NA,NA
+2,3,Krill_superba,0.061169378,NA,NA,NA,NA,NA,NA
+2,3,Large Krill (24 months),NA,NA,0.279803208,NA,NA,NA,NA
+2,3,Large Zooplankton Crustaceans,NA,NA,NA,NA,NA,NA,0.57411675
+2,3,Macrozoo,0.023909444,NA,NA,NA,NA,NA,NA
+2,3,Macrozooplankton,NA,0.310855474,0.12051578,NA,0.88,NA,NA
+2,3,Mesozoo,0.440336818,NA,NA,NA,NA,NA,NA
+2,3,Mesozooplankton,NA,1.169310617,0.44763004,NA,1,0.652818991,NA
+2,3,Microzoo,0.133048213,NA,NA,NA,NA,NA,NA
+2,3,Microzooplankton,NA,0.224059939,0.0860827,NA,1.2,0.771513353,NA
+2,3,Other euphausiids,NA,0.117948293,NA,NA,NA,NA,NA
+2,3,Other Euphausiids,NA,NA,5.09609584,NA,NA,NA,NA
+2,3,Other krill,NA,NA,NA,NA,0.19,NA,NA
+2,3,Other macrozooplankton,NA,NA,NA,NA,NA,0.326409496,NA
+2,3,Other_krill_(external),NA,NA,NA,0.228472508,NA,NA,NA
+2,3,Salps,NA,0.003538095,0.55092928,0.000494736,0.0652,NA,NA
+2,3,Small Krill (< 24 months),NA,NA,0.099617311,NA,NA,NA,NA
+2,3,Small Zooplankton Crustaceans,NA,NA,NA,NA,NA,NA,1.8371736
+3,4,Antarctic silverfish,NA,NA,NA,NA,0.0802,NA,NA
+3,4,Cephalopods,0.00301287,0.005480257,0.008573837,0.001200321,0.015,0.008308605,NA
+3,4,Large Cephalopods,NA,NA,NA,NA,NA,NA,0.007463518
+3,4,Large mesopelagic fish,NA,NA,NA,NA,NA,0.044510386,NA
+3,4,Large Pelagics,NA,NA,NA,NA,NA,NA,0.004822581
+3,4,Mesopelagic fish,NA,NA,NA,NA,0.12,NA,NA
+3,4,Myctophids,NA,NA,0.011259617,NA,NA,0.130563798,0.387528806
+3,4,Off-shelf pelagic fish,NA,0.047222503,NA,NA,NA,NA,NA
+3,4,On-shelf pelagic fish,NA,0.169106591,NA,NA,NA,NA,NA
+3,4,Other fish,NA,NA,NA,NA,0.193,NA,NA
+3,4,Other_fish_(external),NA,NA,NA,0.243277261,NA,NA,NA
+3,4,Pelagic_fish,0.022037187,NA,NA,0.284441444,NA,NA,NA
+3,4,Silverfish,0.040685655,NA,NA,NA,NA,NA,NA
+3,4,Small Cephalopods,NA,NA,NA,NA,NA,NA,0.005167051
+3,4,Small mesopelagic fish,NA,NA,NA,NA,NA,0.086053412,NA
+3,4,Small Pelagics,NA,NA,NA,NA,NA,NA,0.129176269
+4,5,Adelie,0.00077404,NA,NA,NA,NA,NA,NA
+4,5,AdÃ©lie Penguin,NA,NA,2.00E-05,NA,NA,NA,NA
+4,5,AdŽlie penguin,NA,0.000786232,NA,NA,NA,NA,NA
+4,5,AdŽlie penguins,NA,NA,NA,NA,0.0016,NA,NA
+4,5,Albatrosses,NA,NA,NA,NA,NA,1.01E-06,NA
+4,5,Antarctic fur seal,NA,NA,NA,NA,NA,1.01E-05,NA
+4,5,Antarctic Fur Seal,NA,NA,3.44E-06,NA,NA,NA,NA
+4,5,Antarctic Fur Seals,NA,NA,NA,NA,NA,NA,3.00E-05
+4,5,Baleen whales,NA,NA,NA,NA,0.0127,0.000801187,NA
+4,5,Baleen_whale,NA,NA,NA,0.012235688,NA,NA,NA
+4,5,Baleen_whales,0.000293123,NA,NA,NA,NA,NA,NA
+4,5,Black_browed_albatross,NA,NA,NA,0.000678645,NA,NA,NA
+4,5,Blue Whale,NA,NA,2.48E-05,NA,NA,NA,NA
+4,5,Chinstrap Penguin,NA,NA,7.37E-05,NA,NA,NA,NA
+4,5,Chinstrap_penguin,NA,NA,NA,1.95E-05,NA,NA,NA
+4,5,Crabeater,0.001391239,NA,NA,NA,NA,NA,NA
+4,5,Crabeater seal,NA,0.012578928,NA,NA,NA,NA,NA
+4,5,Crabeater Seal,NA,NA,0.003780064,NA,NA,NA,NA
+4,5,Crabeater seals,NA,NA,NA,NA,0.0206,NA,NA
+4,5,Dark-mantled Sooty Albatross,NA,NA,NA,NA,NA,NA,2.93E-06
+4,5,Diverse_flying_seabirds,NA,NA,NA,0.01013477,NA,NA,NA
+4,5,Elephant_seal,NA,NA,NA,0.01674898,NA,NA,NA
+4,5,Emperor,0.000308921,NA,NA,NA,NA,NA,NA
+4,5,Emperor Penguin,NA,NA,3.44E-07,NA,NA,NA,NA
+4,5,Emperor penguins,NA,NA,NA,NA,9.00E-04,NA,NA
+4,5,Fin Whales,NA,NA,0.000147374,NA,NA,NA,NA
+4,5,Flying birds,NA,NA,1.38E-05,NA,3.00E-04,NA,NA
+4,5,Flying seabirds,NA,7.86E-05,NA,NA,NA,NA,NA
+4,5,Flying_birds,8.37E-05,NA,NA,NA,NA,NA,NA
+4,5,Fur_seal,NA,NA,NA,0.008369096,NA,NA,NA
+4,5,Gentoo Penguins,NA,NA,4.13E-06,NA,NA,NA,4.80E-06
+4,5,Gentoo_penguin,NA,NA,NA,0.001863413,NA,NA,NA
+4,5,Giant Petrels,NA,NA,NA,NA,NA,NA,4.66E-06
+4,5,Grey_headed_albatross,NA,NA,NA,0.00072505,NA,NA,NA
+4,5,Grey-headed Albatross,NA,NA,NA,NA,NA,NA,9.73E-06
+4,5,Humpback whale,NA,0.001336593,NA,NA,NA,NA,NA
+4,5,Humpback Whale,NA,NA,0.000279597,NA,NA,NA,NA
+4,5,Indian Yellow-nosed Albatross,NA,NA,NA,NA,NA,NA,9.59E-06
+4,5,King Penguins,NA,NA,NA,NA,NA,NA,0.001689786
+4,5,King_penguin,NA,NA,NA,0.006332347,NA,NA,NA
+4,5,Light-mantled Sooty Albatross,NA,NA,NA,NA,NA,NA,8.04E-07
+4,5,Macaroni Penguin,NA,NA,3.44E-07,NA,NA,NA,NA
+4,5,Macaroni Penguins,NA,NA,NA,NA,NA,NA,0.000471005
+4,5,Macaroni_penguin,NA,NA,NA,0.006044413,NA,NA,NA
+4,5,Minke,0.000561086,NA,NA,NA,NA,NA,NA
+4,5,Minke whale,NA,0.003538068,NA,NA,NA,NA,NA
+4,5,Minke whales,NA,NA,NA,NA,0.0014,NA,NA
+4,5,Minke Whales,NA,NA,0.000162868,NA,NA,NA,NA
+4,5,Other seabirds,NA,NA,NA,NA,NA,2.52E-05,NA
+4,5,Penguins,NA,NA,NA,NA,NA,0.000504451,NA
+4,5,Predatory_seabirds,NA,NA,NA,0.000104347,NA,NA,NA
+4,5,Prions and Petrels,NA,NA,NA,NA,NA,NA,7.54E-05
+4,5,Ross,2.22E-05,NA,NA,NA,NA,NA,NA
+4,5,Ross seals,NA,NA,NA,NA,5.00E-04,NA,NA
+4,5,Southern elephant seal,NA,NA,NA,NA,NA,0.000326409,NA
+4,5,Southern Elephant Seal,NA,NA,3.44E-06,NA,NA,NA,NA
+4,5,Southern elephant seals,NA,NA,NA,NA,0.0011,NA,NA
+4,5,Southern Elephant Seals,NA,NA,NA,NA,NA,NA,0.000113755
+4,5,Southern Rockhopper Penguins,NA,NA,NA,NA,NA,NA,8.15E-05
+4,5,Sperm,0.000532343,NA,NA,NA,NA,NA,NA
+4,5,Sperm whale,NA,NA,NA,NA,NA,5.04E-05,NA
+4,5,Sperm Whale,NA,NA,9.78E-05,NA,NA,NA,NA
+4,5,Sperm whales,NA,NA,NA,NA,0.0011,NA,NA
+4,5,Sub-Antarctic Fur Seals,NA,NA,NA,NA,NA,NA,0.001059751
+4,5,Toothed whales and dolphins,NA,NA,NA,NA,NA,3.26E-05,NA
+4,5,Toothed_whale,NA,NA,NA,0.000554446,NA,NA,NA
+4,5,Toothed_whales,1.55E-05,NA,NA,NA,NA,NA,NA
+4,5,Wandering Albatross,NA,NA,NA,NA,NA,NA,1.64E-05
+4,5,Weddell,0.000250933,NA,NA,NA,NA,NA,NA
+4,5,Weddell seal,NA,0.000947976,NA,NA,NA,NA,NA
+4,5,Weddell Seal,NA,NA,0.000279597,NA,NA,NA,NA
+4,5,Weddell seals,NA,NA,NA,NA,0.0045,NA,NA
+5,5,Killer Whale,NA,NA,2.58E-05,NA,NA,NA,NA
+5,5,Killer whales,NA,NA,NA,NA,6.00E-04,2.76E-07,NA
+5,5,Leopard,9.06E-05,NA,NA,NA,NA,NA,NA
+5,5,Leopard seals,NA,NA,NA,NA,2.00E-04,NA,NA
+5,5,Leopard Seals,NA,NA,2.89E-05,NA,NA,NA,NA
+5,5,Leopard_seal,NA,NA,NA,7.23E-06,NA,NA,NA
+5,5,Orca,0.000294275,NA,NA,NA,NA,NA,NA
+5,5,Orcas,NA,NA,NA,NA,NA,NA,2.91E-06
+6,6,Benthic invertebrates,NA,0.78608988,0.294531958,NA,NA,NA,NA
+6,6,Benthic_invertebrates,NA,NA,NA,0.903760802,NA,NA,NA
+6,6,Benthos,NA,NA,NA,NA,0.715,NA,0.057411675
+6,6,Macrobenthos,0.276881049,NA,NA,NA,NA,NA,NA
+6,6,Megabenthos,0.856473422,NA,NA,NA,NA,NA,NA
+6,6,Meiobenthos,0.027613319,NA,NA,NA,NA,NA,NA
+6,6,Other_shelfish,NA,NA,NA,0.361873629,NA,NA,NA
+6,6,Zoobenthos,NA,NA,NA,NA,NA,0.949554896,NA
+7,7,Benthic Decapod,NA,NA,NA,NA,NA,NA,0.004363287
+7,7,Benthic fish,NA,0.078059837,NA,NA,NA,NA,NA
+7,7,G gibberifrons,NA,NA,0.00413197,NA,NA,NA,NA
+7,7,L_demersal,0.005955567,NA,NA,NA,NA,NA,NA
+7,7,Large deep-sea demersal fish,NA,NA,NA,NA,NA,0.008605341,NA
+7,7,Large Demersals,NA,NA,NA,NA,NA,NA,0.003272465
+7,7,Large Nototheniid Demersals,NA,NA,NA,NA,NA,NA,0.001096563
+7,7,M_demersal,0.00609128,NA,NA,NA,NA,NA,NA
+7,7,N. rossi,NA,NA,0.000475177,NA,NA,NA,NA
+7,7,On-shelf fish,NA,NA,0.018077367,NA,NA,NA,NA
+7,7,Other demersal fish,NA,NA,NA,NA,NA,0.03851632,NA
+7,7,Rays,NA,NA,NA,0.001121569,NA,NA,NA
+7,7,Rock_cods,NA,NA,NA,0.067876236,NA,NA,NA
+7,7,S_demersal,0.058473064,NA,NA,NA,NA,NA,NA
+7,7,Sharks and Rays,NA,NA,NA,NA,NA,NA,4.13E-05
+7,7,Small Continental Slope Demersals,NA,NA,NA,NA,NA,NA,0.001352619
+7,7,Small Inshore Demersals,NA,NA,NA,NA,NA,NA,0.000803763
+8,7,Adult Patagonian toothfish,NA,NA,NA,NA,NA,0.00578635,NA
+8,7,Adult_mackerel_icefish,NA,NA,NA,0.3278892,NA,NA,NA
+8,7,C gunnari,NA,NA,0.003098977,NA,NA,NA,NA
+8,7,Juvenile Patagonian toothfish,NA,NA,NA,NA,NA,0.01810089,NA
+8,7,Juvenile_toothfish,NA,NA,NA,0.007856573,NA,NA,NA
+8,7,Large toothfish,NA,NA,NA,NA,0.075,NA,NA
+8,7,Mackerel icefish,NA,NA,NA,NA,NA,0.034124629,NA
+8,7,Other_icefish,NA,NA,NA,0.056015073,NA,NA,NA
+8,7,Patagonian Toothfish,NA,NA,NA,NA,NA,NA,0.000459293
+9,8,Benthic detritus,NA,1.847696647,NA,NA,NA,NA,NA
+9,8,Carcass,NA,NA,NA,NA,NA,0,NA
+9,8,Carcasses,0,NA,NA,NA,0.2,NA,NA
+9,8,Detritus,NA,NA,0.019867887,0,0.3,5.86379822,3.32987715
+9,8,Detritus_ice,0,NA,NA,NA,NA,NA,NA
+9,8,Detritus_sediment,0,NA,NA,NA,NA,NA,NA
+9,8,Detritus_water,0,NA,NA,NA,NA,NA,NA
+9,8,Macrophyte Detritus,NA,NA,NA,NA,NA,NA,0.004248464
+9,8,Pelagic detritus,NA,0.904191976,NA,NA,NA,NA,NA
+10,2,Bacteria,NA,NA,NA,0.094862051,1.1,0.56379822,NA
+10,2,Bacteria_ice,0.003157594,NA,NA,NA,NA,NA,NA
+10,2,Bacteria_sediment,17.90209725,NA,NA,NA,NA,NA,NA
+10,2,Bacteria_water,0.1686533,NA,NA,NA,NA,NA,NA

@@ -1,0 +1,125 @@
+---
+title: "Constable Chapter 9 Supplementary Material"
+author: "Andrew Constable"
+date: "2024-06-25"
+output: pdf_document
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(knitr)
+#library(kableExtra)
+```
+  
+This supplementary material summarises the mathematical and statistical methods used to generate Figures 9.2, 9.5, 9.7, 9.8 and for Box 9.1.  
+  
+All analyses were undertaken using the statistical programming package, R [@R-base], with the following libraries:
+terra [@Rterra] for geospatial analyses, and ggplot2 [@Rggplot2], ggforce [@Rggforce] for plotting the results.  
+  
+  
+Acronyms used in these notes are:   
+   
+MEASO   Marine Ecosystem Assessment for the Southern Ocean  
+  
+  
+## Figure 9.2: Summary physical attributes  
+  
+Figure 9.2 illustrates the differences between MEASO areas during austral spring (November-December), which is the period of peak production in the Southern Ocean.  Attributes are bottom depth, sea ice extent, photosynthetically active radiation, temperature, and mixed layer depth.  
+  
+### Size of MEASO area  
+  
+The total area (km$^2$) of a MEASO area is the horizontal length of the box showing bottom depth profile, according to the scale in the legend.  
+  
+### Bottom depth  
+  
+Bottom depth data were obtained from GEBCO_2023 [@GEBCO_2023].   
+The bottom depth profile is created from determining the total area (km$^2$) above 0, -1000, -2000, -3000 and -4000 m.  Areas above 0m are islands.
+
+### Other attributes
+
+The figure displays how key physical attributes vary between MEASO areas and how they are expected to change from the present to the end of the century under a "business as usual" climate scenario, i.e. no change in greenhouse gas emissions.  This is a general comparison to demonstrate the spatial variation and change in the physical environment at the scale of MEASO area.  Results from an Earth system model projection is used in order to ensure consistency in the data.  The chosen projection is  ACCESS ESM1.5 SSP5-8.5 [@Ziehn2020_RN13743], the underlying model of which measures well amongst models for projecting Southern Ocean attributes [@Beadling2019_RN14326; @Holmes2019_RN14323].  The ensemble of models from CMIP is not used because not all models have a comparatively good representations of the Southern Ocean and, as yet, no statistical weighting of the models in the ensemble is available for generating the comparison needed here. 
+  
+Attributes are: surface temperature (model variable "thetao" in the top level of the ocean), sea ice ("siconc"), mixed layer depth ("mlotst"), surface light ("rsds").
+
+For each attribute, differences are between a recent period, 1981-2000, and for the end of the century, 2081-2100.  
+
+Access to these data are through the National Computational Infrastructure (NCI) of Australia.  Data are stored in two repositories:
+Historical period (1850-2014):  
+https://thredds.nci.org.au/thredds/catalog/fs38/publications/CMIP6/CMIP/CSIRO/ACCESS-ESM1-5/esm-hist/catalog.html  
+Future projection (2015-2100):  
+https://thredds.nci.org.au/thredds/catalog/fs38/publications/CMIP6/ScenarioMIP/CSIRO/ACCESS-ESM1-5/catalog.html  
+  
+Plotted values were determined by averaging model cell values across months within years, then across years within a period.  Cell means and the areas of each cell within a MEASO area were used to determine weighted median values for each MEASO area for each attribute, except for sea ice, for which the weighted mean was determined.  
+  
+    
+## Figure 9.5: Spatial differences in productivity and food webs in the Southern Ocean   
+  
+### (a) Mean annual net primary productivity  
+  
+Time series estimates of net primary productivity, $mg~{\sf Carbon}.m^2 .{\sf day}^{-1}$, are derived from satellite products.  Ryan-Keogh et al. (2023) provide a recent product (https://doi.org/10.5281/zenodo.10829966) combining 5 common algorithms, as is usual practice to overcome the biases in each: Eppley-VGPM, Behrenfeld-VGPM, Behrenfeld-CbPM, Westberry-CbPM and Silsbe-CAFE.  
+  
+Each circle in the Figure 9.5a represents mean annual net primary productivity over the period 2001-2020 in an area. The following method was applied to the time series of data.  
+  
+i. cells were aggregated (averaged) into quarter-year means (weighted by the number of days in each period) to avoid temporal patchiness in satellite data,  
+i. total net primary production by quarter was determined by multiplying the rate by the number of days in the quarter and the area of the cell,
+i. for an area of interest, the proportion of each cell in the area was determined and the annual production was the sum of the product of cell proportion in area and the sum of the four quarters of production, and  
+i. mean annual production and its coefficient of variation was calculated from the 20 years of annual production.  
+  
+### (b) Summary of relative biomass of taxa in different Ecopath models  
+  
+Ecopath models provide estimates of biomass in different groups from syntheses of data for different areas of the Southern Ocean.  Each model uses an individual set of names for taxa, depending on the trophic detail they are exploring.  All models represent the benthic and pelagic systems, with some providing detail of the sympagic system.  
+  
+The models are (shorthand symbols used in the plots and the subsequent table here are given in parentheses):  
+  
+* East Pacific Antarctic – West Antarctic Peninsula North (EPA-APN) [@Dahood2019_RN13122]  
+* East Pacific Antarctic – West Antarctic Peninsula South (EPA-APS) [@Ballerini2014_RN13693]  
+* Atlantic Subantarctic (AOS) Scotia Arc [@Hill2012_RN14314]  
+* Central Indian Antarctic (CIA) Prydz Bay [@McCormack2019_RN13632]  
+* Central Indian Subantarctic (CIS) Kerguelen Plateau [@Subramaniam2020_RN20361]  
+* Central Indian Northern (CIN) Prince Edward-Marion [@Gurney2014_RN20719]  
+* West Pacific Antarctic (WPA) Ross Sea [@Pinkerton2010_RN8996]  
+  
+A two step process was used to harmonise the models for analysis.  
+  
+i) Functional groups: all taxa in each model were assigned to a common set of functional groups and biomass in each functional group calculated for each model.  In order to easily identify differences in structure, the biomass vector for each model was standardised by dividing by the biomass of the primary producers.  These standardised data are used to assess similarities between the models.  
+ii) Plotting groups: for simplicity to visualise the relative importance of different broad groups, the functional groups were pooled into the relevant groups used in Figure 9.5b.  
+  
+The raw data and original names for the taxonomic groups in each model are provided in the following table.  The data for each model are divided by the total biomass of primary producers.  Reconstruction of the raw data simply requires multiplying the biomass of primary producers (first line) by the relative biomass of each taxon.
+
+```{r EcopathInputTable, echo=FALSE, eval=TRUE, results='asis'}  
+
+et<-read.csv("Suppl Material - Ecopath_Models_Table_Biomass.csv") 
+TableCols<-c("FnGroup","Name","WPA","EPA.APS","EPA.APN","AOS","CIA","CIS","CIN")
+det<-et[et$PlotGroup==1,TableCols]
+det$FnGroup<-as.character(det$FnGroup)
+knitr::kable(det, 
+             format = "simple",
+#             booktabs = TRUE,
+             row.names = FALSE, 
+             col.names = c("Group", TableCols[-1]),
+             digits = 3, 
+             format.args = list(scientific = TRUE),
+             caption = "Primary Producers: Biomass of different taxa relative to protist biomass estimated in different Ecopath models") # %>% kableExtra::kable_styling(font_size = 7)
+```  
+
+Inset: non-metric multidimensional scaling showing degree of differences between food-web structures in the Ecopath models (stress<0.001, colours relate to sectors in (a); see Supplementary Materials).  
+  
+  
+  
+## Figure 9.7: Theoretical considerations of the CCAMLR rule for deciding catch limits for the Antarctic krill fishery  
+  
+Figure 9.7: Theoretical considerations of the CCAMLR rule for deciding catch limits for the Antarctic krill fishery. (a) Expectations in the CCAMLR yield model of a catch limit derived from gamma times a survey estimate of pre-exploitation biomass (B0) for deterministic biomass projections of Antarctic krill based on the Pella-Tomlinson production model and mortality functions in (b). Gamma associated with each curve provided in the legend. Status is the krill biomass relative to the pre-exploitation level.  Fishing occurs during the fishery period followed by a recovery period. See text for details on the different reference levels and the recovery period. (b) Pella-Tomlinson production model based on maximum production to biomass ratio (r) for Antarctic krill of 2.0 yr-1.  Mortality functions are a constant instantaneous mortality rate (0.8 yr-1; constant M) and two examples of a Holling Type III functional feeding relationship – a wide-ranging predator able to continue to find prey, and a localised predator that has greater difficulty finding prey as the prey decline.  Mortalities from all functions are expected to be equal if the pre-exploitation population is in equilibrium. (c) Projections of a dynamic predator-krill model under constant catch from a CCAMLR-like assessment using constant M.  Krill are modelled using the Pella-Tomlinson productivity model and krill mortality from consumption of krill by the predator.  The predator biomass is modelled using Ecopath parameters of consumption, production, respiration and mortality from Hill et al. (2021).  Consumption is varied according to the functional feeding relationships in (b).  Two scenarios were projected – the wide-ranging predator used parameters for baleen whales; the localised predators used parameters for penguins. (see Supplementary Material for details).  
+  
+## Figure 9.8: Illustration of velocity of changes in the physical environment of each MEASO area  
+  
+Figure 9.8: Illustration of velocity of changes in the physical environment of each MEASO area (acronyms detailed in Figure 9.2) projected from 1900 (large symbols) to 2020 (small symbols) to 2100 using outputs from Earth system projections using ACCESS ESM1.5 SSP5-8.5 (business-as-usual) (Ziehn et al., 2020).  Non-metric multidimensional scaling is used to plot the similarities of two-decade periods in their mean conditions for austral spring (November- December; a period of peak production) of photosynthetically active radiation, surface temperature, mixed layer depth and sea ice concentration (stress <0.001; see Supplementary Material).  
+  
+  
+## Box 1 Figure: Coastal ice free habitat  
+  
+This map was supplemented with analysis of the area (km2) of ice-free habitat within 5km of the coast in MEASO areas (using results from Lee et al., 2017, coloured circles are current area, grey circles are predicted area for 2100)(colours and symbols as in Figure 9.2).  
+  
+## References  
+  
+

@@ -1,0 +1,30 @@
+﻿Class,Pool,VarName,gCfromWW,gWWfromC
+Detritus,Detritus,dCa,0.45,2.222222222
+Carcasses,Carcass,dCarc,0.45,2.222222222
+Protists,Small phytoplankton,pSm,0.1,10
+Protists,Diatoms,pDi,0.1,10
+Benthos,Benthos,bBe,0.08,12.5
+Z directed,Microzooplankton,zMi,0.09,11.11111111
+Z directed,Mesozooplankton,zMe,0.09,11.11111111
+Z directed,Macrozooplankton,zMa,0.076,13.15789474
+P school,Salps,zSa,0.003,333.3333333
+P school,Antarctic krill,zKa,0.078,12.82051282
+P school,Other krill,zKo,0.078,12.82051282
+P school,Mesopelagic fish,oMy,0.195,5.128205128
+P school,Antarctic silverfish,oPl,0.195,5.128205128
+P school,Icefish,oCh,0.195,5.128205128
+P ind,Cephalopods,oCe,0.13,7.692307692
+P ind,Toothfish,oDi,0.195,5.128205128
+P ind,Other bentho-pelagic fish,oPiBP,0.195,5.128205128
+A surface,Flying birds,aFB,0.26,3.846153846
+A diver,Small penguins - open water,aPSO,0.26,3.846153846
+A diver,Small penguins - ice dependent,aPSI,0.26,3.846153846
+A diver,Large penguins - open water,aPLO,0.26,3.846153846
+A diver,Large penguins - ice dependent,aPLI,0.26,3.846153846
+A deep,Elephant seals,mSe,0.26,3.846153846
+A diver,Fur seals,mSf,0.26,3.846153846
+A diver,Ice seals,mSi,0.26,3.846153846
+A hunter,Leopard seals,mSl,0.26,3.846153846
+A deep,Baleen whales,mWb,0.26,3.846153846
+A deep,Toothed whales,mWt,0.26,3.846153846
+A hunter,Killer whales,mWo,0.26,3.846153846

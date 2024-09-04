@@ -136,7 +136,8 @@ CombinedGroups<-matrix(
   ),ncol=2,byrow=TRUE) # end dataframe
 dimnames(CombinedGroups)[[2]]<-c("FnGroup","Group")
 
-GroupNames<-c("Protists","Bacteria","Zooplankton","Pelagic Fish & Squid","Birds & Marine Mammals","Benthos","Bentho-pelagic Fish & Squid","Detritus")
+GroupNames<-c("P     Protists","B     Bacteria","Z     Zooplankton","M     Pelagic Fish & Squid","BM  Birds & Marine Mammals","B     Benthos","D     Bentho-pelagic Fish & Squid","De    Detritus")
+GroupLabels <- c("P","B","Z","M","BM","B","D","De")
 ##############################################################################
 # 2. process Ecopath models ####
 
@@ -182,13 +183,40 @@ fnDetritalPoolRelNPP<-function(epMods){
 
 
 #Brel<-fnBiomassRelPP(Ecopath_Mods_Stand)
+
 Brel<-fnBiomassRelPP(Ecopath_Mods)
 Brel[,"Model"]<-factor(Brel[,"Model"],levels = unique(Brel[,"Model"]))
 Brel$Taxa<-factor(GroupNames[Brel$Group],levels=GroupNames)
+Brel$Label<-GroupLabels[Brel$Group]
 Brel$plot0<-Brel[,"Blog10"]
 Brel$plot0[Brel$plot0>0.01 | Brel$plot0<(-0.01)]<-NA
 
 pData<-Brel[Brel$Group!=8 & Brel$Group!=2,] # leave out detritus and bacteria
+
+# produce table of inputs
+fnTableInputs<-function(epMods){
+  
+  mods<-names(epMods)
+r<-    lapply(mods,function(m,epMods){ 
+
+    ep<-fnReadEcopath(root,epMods[[m]])
+    Groups<-seq(1,length(GroupNames),1) # sort(unique(CombinedGroups[CombinedGroups[,"FnGroup"] %in% unique(ep$names$FnGroup),"Group"]))
+    b<-as.data.frame(fnEcopathFnGroupsBiomass(ep,Groups,CombinedGroups))
+    PP<-b[b[,"Group"]==1,"Biomass"]
+
+    df<-data.frame(FnGroup   = ep$names$"FnGroup"
+                  ,PlotGroup = CombinedGroups[ep$names$FnGroup,"Group"]
+                  ,Name      = ep$names$"Name"
+                  ,Biomass   = ep$params$B
+                  ,BrelPP    = ep$params$B/PP)
+    names(df)[c(4,5)]<-c(paste0("B_",m),paste0("BrelPP_",m))
+    return(df)
+  },epMods)
+  return(Reduce(function(x, y) merge(x, y, by=c("FnGroup","PlotGroup","Name"), all=TRUE), r))
+} # end fnTableInputs
+
+r<-fnTableInputs(Ecopath_Mods)
+write.csv(r,"Ecopath_Models_Table_Biomass.csv")
 
 # bar plots ####
 # correction to make bar work
@@ -199,7 +227,7 @@ yMin<-(-3)
 yMax<-yMin+yAdjMax-yAdjMin
 yInt<-1
 p<-ggplot(pData,aes(x=Group,y=Blog10-yAdj,fill=Taxa))+geom_bar(stat="identity", position=position_dodge()) 
-p<-p + scale_fill_viridis_d()   #+ scale_fill_manual(values=c("darkgreen","brown1","orange","blue","grey","brown","darkblue","black"))
+p<-p + scale_fill_manual(values=c("darkgreen","brown1","orange","blue","grey","brown","darkblue","black"))
 #p<-p+geom_point(aes(x=Group,y=plot0,colour=Taxa))  + scale_color_manual(values=c("darkgreen","brown1","orange","blue","grey","brown","darkblue","black"))
 p<-p+labs(y="Biomass relative to Protists (Log10 )")
 p<-p+theme(axis.title.x=element_blank()
@@ -229,6 +257,20 @@ net_pos<-function(cntr=c(5,8),u=1){  # centre point and units to multiply grid s
     names(df)<-c("Group","x","y")
     return(df)    
 }
+net_pos_lab<-function(cntr=c(5,8),u=1){  # centre point and units to multiply grid square
+  p1<-c(1,(cntr[1,1]-0.06)*u,(cntr[1,2]-0.25)*u) # protists (not bacteria)
+  p3<-c(3,(cntr[1,1]-0.06)*u,(cntr[1,2]+0.25)*u) # zooplankton
+  p4<-c(4,(cntr[1,1]+0.05)*u,(cntr[1,2]+0.25)*u) # mesopelagic fish and squid
+  p5<-c(5,(cntr[1,1]-0.005)*u,(cntr[1,2]+0.7)*u)   # BAMM
+  p6<-c(6,(cntr[1,1]-0.002)*u,(cntr[1,2]-0.8)*u)   # Benthos
+  p7<-c(7,(cntr[1,1]+0.05)*u,(cntr[1,2]-0.25)*u) # demersal fish and squid
+  dm<-rbind(p1,p3,p4,p5,p6,p7)
+  df<-as.data.frame(dm)
+  names(df)<-c("Group","x_lab","y_lab")
+  return(df)    
+}
+
+
 NetCentres<- data.frame(Model = c("EPA.APN","AOS","EPA.APS","CIA","WPA","CIS","CIN")
                        ,"x" = c(-0.1,0.1,-0.1,0.1,-0.1,0.1,0.1)
                        ,"y" = c(9,9,6.5,6.5,4,4,1.5))
@@ -240,6 +282,12 @@ netLayout<-merge(do.call(rbind,lapply(unique(pData$Model),function(m,nc,u){
   return(data.frame(Model=rep(m,nrow(np)),np))
   },NetCentres,Multiplier)),pData,by=c("Model","Group"))
 
+# add labels
+netLayout<-merge(do.call(rbind,lapply(unique(pData$Model),function(m,nc,u){
+  np<-net_pos_lab(nc[nc$Model==m,c("x","y")],Multiplier)
+  return(data.frame(Model=rep(m,nrow(np)),np))
+},NetCentres,Multiplier)),netLayout,by=c("Model","Group"))
+
 netLayout
 netLayout$Broot<-netLayout$Biomass^0.5
 
@@ -250,7 +298,7 @@ p<-ggplot(netLayout,aes(x=x,y=y,size=Biomass, fill=Taxa))  #
 p<-p+ geom_point(alpha=1,shape=21, color="black")  # alpha is opacity
 p<-p+ scale_size_area(name="Biomass relative to protists",guide="legend" #,range  = c(0, 6.5)
                             ,max_size=15, breaks = c(0.1, 0.5, 1, 2, 6))
-p<-p+  scale_fill_viridis_d(begin=0.4, end = 0.9, direction=-1)
+p<-p + scale_fill_manual(values=c("#008000","orange","#b3b3b3ff","#3c6a6bff","#782121","#000080ff"))
 p<-p+theme( axis.title.x=element_blank()
            ,axis.text.x=element_blank()
            ,axis.ticks.x=element_blank()
@@ -260,19 +308,22 @@ p<-p+theme( axis.title.x=element_blank()
            , panel.background = element_blank()
 ) # end theme
 
-p<-p+ annotate(geom="text", x=-0.15, y=10, label="East Pacific Antarctic - WAP-north",
+p<-p+ annotate(geom="text", x=netLayout[,"x_lab"], y=netLayout[,"y_lab"], label=netLayout[,"Label"],
+               color="black", hjust=0, size=3)
+
+p<-p+ annotate(geom="text", x=-0.15, y=10.1, label="East Pacific Antarctic - AP-north",
                color="black", hjust=0)
-p<-p+ annotate(geom="text", x= 0.15, y=10, label="Atlantic Subantarctic",
+p<-p+ annotate(geom="text", x= 0.15, y=10.1, label="Atlantic Subantarctic",
                color="black", hjust=1)
-p<-p+ annotate(geom="text", x=-0.15, y= 7.5, label="East Pacific Antarctic - WAP-south",
+p<-p+ annotate(geom="text", x=-0.15, y= 7.6, label="East Pacific Antarctic - AP-south",
                color="black", hjust=0)
-p<-p+ annotate(geom="text", x= 0.15, y= 7.5, label="Central Indian Antarctic",
+p<-p+ annotate(geom="text", x= 0.15, y= 7.6, label="Central Indian Antarctic",
                color="black", hjust=1)
-p<-p+ annotate(geom="text", x=-0.15, y= 5, label="West Pacific Antarctic",
+p<-p+ annotate(geom="text", x=-0.15, y= 5.1, label="West Pacific Antarctic",
                color="black", hjust=0)
-p<-p+ annotate(geom="text", x= 0.15, y= 5, label="Central Indian Subantarctic",
+p<-p+ annotate(geom="text", x= 0.15, y= 5.1, label="Central Indian Subantarctic",
                color="black", hjust=1)
-p<-p+ annotate(geom="text", x= 0.15, y= 2.5, label="Central Indian Northern",
+p<-p+ annotate(geom="text", x= 0.15, y= 2.6, label="Central Indian Northern",
                color="black", hjust=1)
 p
 

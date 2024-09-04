@@ -117,7 +117,7 @@ find_G_FW<-function(par,parms,fwB0,Btarget,projYrs){
 
 # 6.0 Plotting
 
-fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1),Ylim=NULL,plotMrate=TRUE,plotMtypeH=TRUE,catch=0){
+fnPlotPellaTomlinson<-function(PT,PlotColours,PlotLineTypes,HollingExamples=NULL,Krange=c(0,1),Ylim=NULL,plotMrate=TRUE,plotMtypeH=TRUE,catch=0){
   # create dataframe ####
   #    X-axis ####
   B<-seq(Krange[1],Krange[2],1E-2)*PT$par$K 
@@ -149,9 +149,11 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
     },HollingExamples,B,PT)))           
   } # end if
   pd$Line<-factor(pd$Line,levels=unique(pd$Line))
-  lineColours<-sapply(as.vector(levels(pd$Line)),function(l,PlotColours){if(l %in% names(PlotColours)) return(as.vector(PlotColours[l])) else 
-    pc<-"black"; return(pc)},PlotColours)
   
+  lineColours<-sapply(as.vector(levels(pd$Line)),function(l,PlotColours){if(l %in% names(PlotColours)) return(as.vector(PlotColours[l])) else if 
+    (l == "Productivity") return("#FF9900") else return("#FF9900")},PlotColours)
+  LineTypes<-sapply(as.vector(levels(pd$Line)),function(l,PlotLineTypes){if(l %in% names(PlotLineTypes)) return(as.vector(PlotLineTypes[l])) else if
+    (l == "Rate") return("dashed") else return("solid")},PlotLineTypes)
   Maxima<-pd$B[pd$Line=="Productivity"][which(pd$Change[pd$Line=="Productivity"]==(max(pd$Change[pd$Line=="Productivity"])))]
   names(Maxima)="Productivity"
   usePD<-pd[!(pd$Line=="Productivity"),]
@@ -165,7 +167,7 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   
   
   # plot graph ####
-  p<-ggplot(pd)+labs(Title="Annual Production Curve",x="Biomass",y="Production",colour="Lines")
+  p<-ggplot(pd)+labs(Title="Annual Production Curve",x="Biomass",y="Production",colour="Lines",linetype="Lines")
   p<-p+theme(panel.background = element_rect(fill="white",colour = "black")
              ,panel.grid.major = element_blank()
              ,panel.grid.minor = element_blank()
@@ -175,7 +177,7 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
              ,legend.title=element_text(size=14)
              ,legend.text=element_text(size=12)
   )# end theme
-  p<-p + coord_fixed(1)
+  p<-p + coord_fixed(0.5)
   p<- p+scale_x_continuous(breaks=seq(Xlim[1],Xlim[2],length.out=6)
                            ,expand=expansion(mult = c(0,0.05)))
   p<- p+scale_y_continuous(breaks=seq(Ylim[1],Ylim[2],length.out=5),expand=expansion(mult = c(0,0.05)))
@@ -187,8 +189,9 @@ fnPlotPellaTomlinson<-function(PT,PlotColours,HollingExamples=NULL,Krange=c(0,1)
   #  p<- p+geom_vline(xintercept=PT$Bmax_dP,colour="black",linetype="dotted") # bionmass with max production
   p<- p+geom_vline(xintercept=PT$B0,colour="black",linetype="twodash") # B0
   
-  p<-p+geom_line(aes(x=B,y=Change,colour=Line))
+  p<-p+geom_line(aes(x=B,y=Change,colour=Line,linetype = Line),linewidth=0.75)
   p<-p+scale_colour_manual(labels=c("Krill productivity","Mortality = 0.8","Mortality = Wide-ranging predator    ","Mortality = Localised predator"),values=as.vector(lineColours))
+  p<-p+scale_linetype_manual(labels=c("Krill productivity","Mortality = 0.8","Mortality = Wide-ranging predator    ","Mortality = Localised predator"),values = as.vector(LineTypes))
   p<- p+theme(legend.key=element_blank()) # removes boxes from around lines in legend
   
   # now do colours and line types as chosen                   
@@ -211,7 +214,7 @@ fnPlotPellaTomlinson_FWconfig<-function(Env,PT,pC,Krange=c(0,1),Ylim=NULL){
   # create dataframe ####
   #    X-axis ####
   B<-seq(Krange[1],Krange[2],1E-2)*max(Env) 
-   #    Production without mortality for veach environment
+   #    Production without mortality for each environment
   pd<-do.call(rbind,lapply(Env,function(E,B,PT){
           PT$par$K<-E
           Change  <- dP(B,PT$par)
@@ -268,6 +271,7 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
                              ,parms,ProjYears,time0,Xlim=NULL,XticksN=7,Ylim=NULL,YticksN=6,useStatus=TRUE, doLegend=TRUE,LegendTopLeft=c(0.6,0.25),doAxisLabels=TRUE,LineColours=NULL){
   
   LineColours<-plotColours
+  LineTypes  <-plotLineType
 
   # create dataframe ####
   y0<-parms$PT$B0
@@ -309,7 +313,7 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
   
   pd<-pd[pd$time>=Xlim[1] & pd$time<=Xlim[2] & !is.na(pd$B),] # restrict plot to x limits & remove NAs from dataframe
 
-# adjust everyuthing to time0 for plotting ####
+# adjust everything to time0 for plotting ####
  pd$time<-pd$time+time0
   Xlim<-Xlim+time0
   yrFishingStarts<-ProjYears$Fishery[1]+time0
@@ -349,11 +353,16 @@ fnPlotPopWithGamma<-function(Gamma # vector with names for mortality type
                                 ,(yrFishingEnds+ProjYears$Recovery))
                    ,colour=c("black","black","black"),linetype=c("dashed","dashed","dashed"))
   
-  p<- p+geom_line(aes(x=time,y=B,colour=Mortality),linewidth=0.5)
+  p<- p+geom_line(aes(x=time,y=B,colour=Mortality,linetype=Mortality),linewidth=0.5)
   if(!is.null(LineColours)) {
-    lColours<-c("black",LineColours[c("Whale","Penguin")])
+    lColours<-c(LineColours[c("Krill","Whale","Penguin")])
+    lTypes<-c("solid","solid","dashed")
     names(lColours)<-NULL
     p<- p+scale_colour_manual(values=lColours, labels= c(bquote(paste( "0.8                                : ",gamma," = ",.(round(Gamma[1],3))))
+                                                         ,bquote(paste("Wide-ranging predator : ",gamma," = ",.(round(Gamma[2],3)),"      "))
+                                                         ,bquote(paste("Localised predator       : ",gamma," = ",.(round(Gamma[3],3))))
+    ))
+    p<- p+scale_linetype_manual(values=lTypes, labels= c(bquote(paste( "0.8                                : ",gamma," = ",.(round(Gamma[1],3))))
                                                          ,bquote(paste("Wide-ranging predator : ",gamma," = ",.(round(Gamma[2],3)),"      "))
                                                          ,bquote(paste("Localised predator       : ",gamma," = ",.(round(Gamma[3],3))))
     ))
